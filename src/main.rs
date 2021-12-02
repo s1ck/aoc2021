@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::str::FromStr;
 
 mod d01;
+mod d02;
 
 fn main() {
     let day = std::env::args()
@@ -10,10 +11,8 @@ fn main() {
         .unwrap();
 
     let (res1, res2) = match day {
-        1 => {
-            let input = read_file("input/d01.txt");
-            d01::run(&input)
-        }
+        1 => d01::run(&read_file("input/d01.txt")),
+        2 => d02::run(&read_file("input/d02.txt")),
         _ => panic!("invalid input"),
     };
 
