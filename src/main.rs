@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 mod d01;
 mod d02;
+mod d03;
 
 fn main() {
     let day = std::env::args()
@@ -13,6 +14,13 @@ fn main() {
     let (res1, res2) = match day {
         1 => d01::run(&read_file("input/d01.txt")),
         2 => d02::run(&read_file("input/d02.txt")),
+        3 => d03::run(
+            read_file_raw("input/d03.txt")
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .as_slice(),
+        ),
         _ => panic!("invalid input"),
     };
 
@@ -27,6 +35,14 @@ where
     std::fs::read_to_string(file_name)
         .expect("file not found")
         .lines()
-        .map(|x| x.parse::<T>().unwrap())
+        .map(|x| x.parse().unwrap())
         .collect()
+}
+
+fn read_file_raw(file_name: &str) -> Vec<String> {
+    std::fs::read_to_string(file_name)
+        .expect("file not found")
+        .lines()
+        .map(String::from)
+        .collect::<Vec<_>>()
 }
