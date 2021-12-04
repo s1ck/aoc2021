@@ -4,6 +4,7 @@ use std::str::FromStr;
 mod d01;
 mod d02;
 mod d03;
+mod d04;
 
 fn main() {
     let day = std::env::args()
@@ -16,6 +17,13 @@ fn main() {
         2 => d02::run(&read_file("input/d02.txt")),
         3 => d03::run(
             read_file_raw("input/d03.txt")
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .as_slice(),
+        ),
+        4 => d04::run(
+            read_file_raw("input/d04.txt")
                 .iter()
                 .map(|s| s.as_str())
                 .collect::<Vec<_>>()
