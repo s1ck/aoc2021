@@ -5,6 +5,7 @@ mod d01;
 mod d02;
 mod d03;
 mod d04;
+mod d05;
 
 fn main() {
     let day = std::env::args()
@@ -29,6 +30,7 @@ fn main() {
                 .collect::<Vec<_>>()
                 .as_slice(),
         ),
+        5 => d05::run(&read_file("input/d05.txt")),
         _ => panic!("invalid input"),
     };
 
