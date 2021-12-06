@@ -9,8 +9,8 @@ pub enum Direction {
 
 pub struct Input(Direction, u32);
 
-pub fn run(ins: &[Input]) -> (u32, u32) {
-    (part1(ins), part2(ins))
+pub fn run(ins: &[Input]) -> (usize, usize) {
+    (part1(ins) as usize, part2(ins) as usize)
 }
 
 fn part1(ins: &[Input]) -> u32 {

@@ -1,5 +1,5 @@
-pub fn run(measurements: &[i64]) -> (u32, u32) {
-    (part1(measurements), part2(measurements))
+pub fn run(measurements: &[i64]) -> (usize, usize) {
+    (part1(measurements) as usize, part2(measurements) as usize)
 }
 
 fn part1(measurements: &[i64]) -> u32 {

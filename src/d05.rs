@@ -60,8 +60,8 @@ impl Line {
     }
 }
 
-pub fn run(lines: &[Line]) -> (u32, u32) {
-    (part1(lines), part2(lines))
+pub fn run(lines: &[Line]) -> (usize, usize) {
+    (part1(lines) as usize, part2(lines) as usize)
 }
 
 fn part1(lines: &[Line]) -> u32 {

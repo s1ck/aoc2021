@@ -145,7 +145,7 @@ fn part2(draws: &[u32], boards: &mut [Board]) -> u32 {
     unreachable!();
 }
 
-pub fn run(lines: &[&str]) -> (u32, u32) {
+pub fn run(lines: &[&str]) -> (usize, usize) {
     let draws = lines[0]
         .split(',')
         .map(|c| c.parse::<u32>().unwrap())
@@ -156,7 +156,10 @@ pub fn run(lines: &[&str]) -> (u32, u32) {
         .map(Board::from)
         .collect::<Vec<_>>();
 
-    (part1(&draws, &mut boards), part2(&draws, &mut boards))
+    (
+        part1(&draws, &mut boards) as usize,
+        part2(&draws, &mut boards) as usize,
+    )
 }
 
 #[cfg(test)]

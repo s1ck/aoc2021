@@ -6,8 +6,8 @@ enum Type {
     Co2,
 }
 
-pub fn run(ins: &[&str]) -> (u32, u32) {
-    (part1(ins), part2(ins))
+pub fn run(ins: &[&str]) -> (usize, usize) {
+    (part1(ins) as usize, part2(ins) as usize)
 }
 
 fn part1(words: &[&str]) -> u32 {

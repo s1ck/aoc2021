@@ -6,6 +6,7 @@ mod d02;
 mod d03;
 mod d04;
 mod d05;
+mod d06;
 
 fn main() {
     let day = std::env::args()
@@ -17,20 +18,22 @@ fn main() {
         1 => d01::run(&read_file("input/d01.txt")),
         2 => d02::run(&read_file("input/d02.txt")),
         3 => d03::run(
-            read_file_raw("input/d03.txt")
+            read_file_with("input/d03.txt", |line| line.to_string())
                 .iter()
                 .map(|s| s.as_str())
                 .collect::<Vec<_>>()
                 .as_slice(),
         ),
         4 => d04::run(
-            read_file_raw("input/d04.txt")
+            read_file_with("input/d04.txt", |line| line.to_string())
                 .iter()
                 .map(|s| s.as_str())
                 .collect::<Vec<_>>()
                 .as_slice(),
         ),
         5 => d05::run(&read_file("input/d05.txt")),
+        6 => d06::run(&read_file_with("input/d06.txt", d06::parse)[0]),
+
         _ => panic!("invalid input"),
     };
 
@@ -49,10 +52,10 @@ where
         .collect()
 }
 
-fn read_file_raw(file_name: &str) -> Vec<String> {
+fn read_file_with<T>(file_name: &str, f: impl Fn(&str) -> T) -> Vec<T> {
     std::fs::read_to_string(file_name)
         .expect("file not found")
         .lines()
-        .map(String::from)
-        .collect::<Vec<_>>()
+        .map(|x| f(x))
+        .collect()
 }
