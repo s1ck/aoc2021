@@ -18,6 +18,13 @@ fn part1(positions: &[i32]) -> i32 {
         .unwrap()
 }
 
+fn part1_median(positions: &[i32]) -> i32 {
+    let mut positions = positions.iter().copied().collect::<Vec<_>>();
+    positions.sort();
+    let median = positions[positions.len() / 2];
+    positions.into_iter().map(|pos| (pos - median).abs()).sum()
+}
+
 fn part2(positions: &[i32]) -> i32 {
     let max_position = positions.iter().max().unwrap();
 
@@ -50,6 +57,7 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(part1(&positions), 37);
+        assert_eq!(part1_median(&positions), 37);
     }
 
     #[test]
