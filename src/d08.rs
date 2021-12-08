@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    str::FromStr,
-};
+use std::{collections::HashSet, str::FromStr};
 
 pub fn run(inputs: &[Input]) -> (usize, usize) {
     (part1(inputs) as usize, part2(inputs) as usize)
@@ -24,16 +21,7 @@ impl FromStr for Input {
         Ok(Input { input, output })
     }
 }
-// 0 -> 6
-// 1 -> 2*
-// 2 -> 5
-// 3 -> 5
-// 4 -> 4*
-// 5 -> 5
-// 6 -> 6
-// 7 -> 3*
-// 8 -> 7*
-// 9 -> 6
+
 fn part1(inputs: &[Input]) -> u32 {
     inputs.iter().fold(0, |sum, input| {
         sum + input.output.iter().fold(0, |sum, word| {
@@ -46,7 +34,7 @@ fn part1(inputs: &[Input]) -> u32 {
 }
 
 fn part2(inputs: &[Input]) -> u32 {
-    fn decode_input(input: &Input) -> u32 {
+    fn decode(input: &Input) -> u32 {
         let Input { input, output } = input;
 
         let input = input
@@ -54,90 +42,63 @@ fn part2(inputs: &[Input]) -> u32 {
             .map(|word| word.chars().collect::<HashSet<_>>())
             .collect::<Vec<_>>();
 
-        let one = input.iter().find(|word| word.len() == 2).unwrap();
-        let four = input.iter().find(|word| word.len() == 4).unwrap();
-        let seven = input.iter().find(|word| word.len() == 3).unwrap();
-        let eight = input.iter().find(|word| word.len() == 7).unwrap();
-
-        let dummy = HashSet::new();
         let mut found = Vec::with_capacity(10);
-        found.resize(10, &dummy);
+        found.resize(10, None);
 
-        found[1] = one;
-        found[4] = four;
-        found[7] = seven;
-        found[8] = eight;
-
-        let nine = input
+        found[1] = input.iter().find(|word| word.len() == 2);
+        found[4] = input.iter().find(|word| word.len() == 4);
+        found[7] = input.iter().find(|word| word.len() == 3);
+        found[8] = input.iter().find(|word| word.len() == 7);
+        found[9] = input
             .iter()
-            .filter(|word| !found.contains(&word))
+            .filter(|&word| !found.contains(&Some(word)))
             .find(|&word| {
-                (eight - word).len() == 1 && (one - word).len() == 0 && (four - word).len() == 0
-            })
-            .unwrap();
-
-        found[9] = nine;
-
-        let six = input
+                (found[8].unwrap() - word).len() == 1
+                    && (found[1].unwrap() - word).is_empty()
+                    && (found[4].unwrap() - word).is_empty()
+            });
+        found[6] = input
             .iter()
-            .filter(|word| !found.contains(&word))
-            .find(|&word| (eight - word).len() == 1 && (one - word).len() == 1)
-            .unwrap();
-
-        found[6] = six;
-
-        let zero = input
+            .filter(|&word| !found.contains(&Some(word)))
+            .find(|&word| {
+                (found[8].unwrap() - word).len() == 1 && (found[1].unwrap() - word).len() == 1
+            });
+        found[0] = input
             .iter()
-            .filter(|word| !found.contains(&word))
-            .find(|word| word.len() == 6)
-            .unwrap();
-
-        found[0] = zero;
-
-        let five = input
+            .filter(|&word| !found.contains(&Some(word)))
+            .find(|word| word.len() == 6);
+        found[5] = input
             .iter()
-            .filter(|word| !found.contains(&word))
-            .find(|&word| (word - nine).len() == 0 && (one - word).len() == 1)
-            .unwrap();
-
-        found[5] = five;
-
-        let two = input
+            .filter(|&word| !found.contains(&Some(word)))
+            .find(|&word| {
+                (word - found[9].unwrap()).is_empty() && (found[1].unwrap() - word).len() == 1
+            });
+        found[2] = input
             .iter()
-            .filter(|word| !found.contains(&word))
-            .find(|&word| word.len() == 5 && (one - word).len() == 1)
-            .unwrap();
-
-        found[2] = two;
-
-        let three = input
+            .filter(|&word| !found.contains(&Some(word)))
+            .find(|&word| word.len() == 5 && (found[1].unwrap() - word).len() == 1);
+        found[3] = input
             .iter()
-            .filter(|word| !found.contains(&word))
-            .find(|word| true)
-            .unwrap();
+            .filter(|&word| !found.contains(&Some(word)))
+            .find(|_| true);
 
-        found[3] = three;
-
-        let output = output
+        output
             .iter()
+            .rev()
+            .map(|word| word.chars().collect::<HashSet<_>>())
             .map(|word| {
-                let word = word.chars().collect::<HashSet<_>>();
-                let (n, _) = found
+                found
                     .iter()
                     .enumerate()
-                    .find(|(i, &n)| (n - &word).len() == 0 && (&word - n).len() == 0)
-                    .unwrap();
-
-                n.to_string()
+                    .find(|(_, &n)| n.unwrap() == &word)
+                    .unwrap()
+                    .0 as u32
             })
-            .collect::<String>();
-
-        output.parse::<u32>().unwrap()
+            .enumerate()
+            .fold(0, |sum, (i, n)| sum + (10_u32.pow(i as u32) * n))
     }
 
-    inputs
-        .iter()
-        .fold(0, |sum, input| sum + decode_input(input))
+    inputs.iter().fold(0, |sum, input| sum + decode(input))
 }
 
 #[cfg(test)]
@@ -176,10 +137,5 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(part2(&input), 61229);
-    }
-
-    #[test]
-    fn vec_eq() {
-        assert_eq!(vec![1, 2, 3], vec![1, 2, 3])
     }
 }

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::fmt::Debug;
 use std::str::FromStr;
 
@@ -60,6 +62,6 @@ fn read_file_with<T>(file_name: &str, f: impl Fn(&str) -> T) -> Vec<T> {
     std::fs::read_to_string(file_name)
         .expect("file not found")
         .lines()
-        .map(|x| f(x))
+        .map(f)
         .collect()
 }
