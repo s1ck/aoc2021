@@ -11,6 +11,7 @@ mod d05;
 mod d06;
 mod d07;
 mod d08;
+mod d09;
 
 fn main() {
     let day = std::env::args()
@@ -39,6 +40,7 @@ fn main() {
         6 => d06::run(&read_file_with("input/d06.txt", d06::parse)[0]),
         7 => d07::run(&read_file_with("input/d07.txt", d07::parse)[0]),
         8 => d08::run(&read_file("input/d08.txt")),
+        9 => d09::run(read_file_with("input/d09.txt", d09::parse)),
 
         _ => panic!("invalid input"),
     };
