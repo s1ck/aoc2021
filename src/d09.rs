@@ -1,10 +1,12 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
 pub fn run(field: Vec<Vec<u8>>) -> (usize, usize) {
-    (part1(field.clone()).0 as usize, part2(field) as usize)
+    let field = field.iter().map(|line| line.as_slice()).collect::<Vec<_>>();
+
+    (part1(&field).0 as usize, part2(&field) as usize)
 }
 
-fn part1(field: Vec<Vec<u8>>) -> (u32, Vec<(usize, usize)>) {
+fn part1(field: &[&[u8]]) -> (u32, Vec<(usize, usize)>) {
     let h = field.len();
     let w = field[0].len();
 
@@ -29,66 +31,68 @@ fn part1(field: Vec<Vec<u8>>) -> (u32, Vec<(usize, usize)>) {
     (sum, depths)
 }
 
-fn part2(field: Vec<Vec<u8>>) -> u32 {
-    fn bfs(field: &[Vec<u8>], root: (usize, usize)) -> u32 {
-        let mut queue = vec![root];
+fn part2(field: &[&[u8]]) -> u32 {
+    let (_, depths) = part1(field);
+    let mut sizes = depths
+        .iter()
+        .map(|depth| bfs(field, *depth))
+        .collect::<Vec<_>>();
+    sizes.sort_by(|a, b| a.cmp(b).reverse());
+    return sizes.iter().take(3).product();
+
+    fn bfs(field: &[&[u8]], root: (usize, usize)) -> u32 {
         let mut size = 0;
+        let mut queue = VecDeque::new();
+        queue.push_back(root);
 
         let h = field.len();
         let w = field[0].len();
 
         let mut seen = HashSet::new();
 
-        while !queue.is_empty() {
-            let (i, j) = queue.remove(0);
-            size += 1;
+        while let Some((i, j)) = queue.pop_front() {
             let c = field[i][j];
+            if c == 9 {
+                continue;
+            }
+            size += 1;
 
             let t = if i == 0 { c + 1 } else { field[i - 1][j] };
             let r = if j == w - 1 { c + 1 } else { field[i][j + 1] };
             let b = if i == h - 1 { c + 1 } else { field[i + 1][j] };
             let l = if j == 0 { c + 1 } else { field[i][j - 1] };
 
-            if i > 0 && t > c && t != 9 {
+            if i > 0 && t > c {
                 let p = (i - 1, j);
                 if !seen.contains(&p) {
                     seen.insert(p);
-                    queue.push(p);
+                    queue.push_back(p);
                 }
             }
-            if j != w - 1 && r > c && r != 9 {
+            if j < w - 1 && r > c {
                 let p = (i, j + 1);
                 if !seen.contains(&p) {
                     seen.insert(p);
-                    queue.push(p);
+                    queue.push_back(p);
                 }
             }
-            if i != h - 1 && b > c && b != 9 {
+            if i < h - 1 && b > c {
                 let p = (i + 1, j);
                 if !seen.contains(&p) {
                     seen.insert(p);
-                    queue.push(p);
+                    queue.push_back(p);
                 }
             }
-            if j > 0 && l > c && l != 9 {
+            if j > 0 && l > c {
                 let p = (i, j - 1);
                 if !seen.contains(&p) {
                     seen.insert(p);
-                    queue.push(p);
+                    queue.push_back(p);
                 }
             }
         }
         size
     }
-
-    let mut sizes = part1(field.clone())
-        .1
-        .iter()
-        .map(|depth| bfs(&field, *depth))
-        .collect::<Vec<_>>();
-
-    sizes.sort_by(|a, b| a.cmp(b).reverse());
-    sizes.iter().take(3).product()
 }
 
 pub fn parse(line: &str) -> Vec<u8> {
@@ -110,13 +114,9 @@ mod tests {
         let input = INPUT
             .split('\n')
             .map(|line| parse(line))
-            .map(|line| {
-                println!("{:?}", line);
-                line
-            })
             .collect::<Vec<_>>();
 
-        assert_eq!(part1(input).0, 15);
+        assert_eq!(run(input).0, 15);
     }
 
     #[test]
@@ -130,6 +130,6 @@ mod tests {
             })
             .collect::<Vec<_>>();
 
-        assert_eq!(part2(input), 1134);
+        assert_eq!(run(input).1, 1134);
     }
 }
