@@ -26,7 +26,7 @@ fn part2(lines: &[&str]) -> usize {
         })
         .collect::<Vec<_>>();
 
-    scores.sort();
+    scores.sort_unstable();
     scores[scores.len() / 2]
 }
 
@@ -40,12 +40,12 @@ fn check_line(line: &str) -> (u32, Vec<char>) {
                 stack.push(c);
                 0
             }
-            d @ (')' | ']' | '}' | '>') => match stack.pop().unwrap() {
+            _ => match stack.pop().unwrap() {
                 '(' if c == ')' => 0,
                 '[' if c == ']' => 0,
                 '{' if c == '}' => 0,
                 '<' if c == '>' => 0,
-                _ => match d {
+                _ => match c {
                     ')' => 3,
                     ']' => 57,
                     '}' => 1197,
@@ -53,7 +53,6 @@ fn check_line(line: &str) -> (u32, Vec<char>) {
                     _ => unreachable!(),
                 },
             },
-            d => panic!("found {}", d),
         })
         .find(|x| *x > 0)
         .unwrap_or_default();
