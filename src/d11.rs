@@ -1,38 +1,40 @@
-pub fn run(mut dumbos: Vec<Vec<u8>>) -> (usize, usize) {
+const SIZE: usize = 10;
+
+pub fn run(lines: &[&str]) -> (usize, usize) {
     (
-        part1(&mut dumbos.clone()) as usize,
-        part2(&mut dumbos) as usize,
+        part1(&mut parse(lines)) as usize,
+        part2(&mut parse(lines)) as usize,
     )
 }
 
-fn part1(field: &mut [Vec<u8>]) -> u32 {
+fn part1(field: &mut [[u8; SIZE]; SIZE]) -> u32 {
     let mut flashes = 0;
 
-    for _ in 0..100 {
-        let mut queue = phase1(field);
+    for _ in 0..SIZE * SIZE {
+        let mut queue = increment(field);
 
         while let Some(next) = queue.pop() {
             flashes += 1;
-            phase2(next, field, &mut queue);
+            flash(next, field, &mut queue);
         }
     }
 
     flashes
 }
 
-fn part2(field: &mut [Vec<u8>]) -> u32 {
+fn part2(field: &mut [[u8; SIZE]; SIZE]) -> u32 {
     let mut step = 1;
 
     loop {
         let mut flashes = 0;
-        let mut queue = phase1(field);
+        let mut queue = increment(field);
 
         while let Some(next) = queue.pop() {
             flashes += 1;
-            phase2(next, field, &mut queue);
+            flash(next, field, &mut queue);
         }
 
-        if flashes == 100 {
+        if flashes == SIZE * SIZE {
             return step;
         }
 
@@ -40,7 +42,7 @@ fn part2(field: &mut [Vec<u8>]) -> u32 {
     }
 }
 
-fn phase1(field: &mut [Vec<u8>]) -> Vec<(usize, usize)> {
+fn increment(field: &mut [[u8; SIZE]; SIZE]) -> Vec<(usize, usize)> {
     let mut queue = vec![];
 
     for i in 0..field.len() {
@@ -56,8 +58,12 @@ fn phase1(field: &mut [Vec<u8>]) -> Vec<(usize, usize)> {
     queue
 }
 
-fn phase2((row, col): (usize, usize), field: &mut [Vec<u8>], queue: &mut Vec<(usize, usize)>) {
-    field[row as usize][col as usize] = 0;
+fn flash(
+    (row, col): (usize, usize),
+    field: &mut [[u8; SIZE]; SIZE],
+    queue: &mut Vec<(usize, usize)>,
+) {
+    field[row][col] = 0;
 
     for (n_row, n_col) in [
         (row.wrapping_sub(1), col.wrapping_sub(1)),
@@ -84,8 +90,17 @@ fn phase2((row, col): (usize, usize), field: &mut [Vec<u8>], queue: &mut Vec<(us
     }
 }
 
-pub fn parse(line: &str) -> Vec<u8> {
-    line.trim().bytes().map(|b| b - b'0').collect()
+fn parse(lines: &[&str]) -> [[u8; SIZE]; SIZE] {
+    let mut res = [[0; SIZE]; SIZE];
+
+    lines.iter().enumerate().for_each(|(row, line)| {
+        line.trim()
+            .bytes()
+            .enumerate()
+            .for_each(|(col, b)| res[row][col] = b - b'0')
+    });
+
+    res
 }
 
 #[cfg(test)]
@@ -104,21 +119,13 @@ mod tests {
                            5283751526"#;
     #[test]
     fn test_part1() {
-        let mut input = INPUT
-            .split('\n')
-            .map(|line| parse(line))
-            .collect::<Vec<_>>();
-
-        assert_eq!(part1(&mut input), 1656);
+        let input = INPUT.split('\n').collect::<Vec<_>>();
+        assert_eq!(run(&input).0, 1656);
     }
 
     #[test]
     fn test_part2() {
-        let mut input = INPUT
-            .split('\n')
-            .map(|line| parse(line))
-            .collect::<Vec<_>>();
-
-        assert_eq!(part2(&mut input), 195);
+        let input = INPUT.split('\n').collect::<Vec<_>>();
+        assert_eq!(run(&input).1, 195);
     }
 }

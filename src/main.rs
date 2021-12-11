@@ -50,7 +50,13 @@ fn main() {
                 .collect::<Vec<_>>()
                 .as_slice(),
         ),
-        11 => d11::run(read_file_with("input/d11.txt", d11::parse)),
+        11 => d11::run(
+            read_file_with("input/d11.txt", |line| line.to_string())
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .as_slice(),
+        ),
         _ => panic!("invalid input"),
     };
 
