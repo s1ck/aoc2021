@@ -5,98 +5,83 @@ pub fn run(mut dumbos: Vec<Vec<u8>>) -> (usize, usize) {
     )
 }
 
-fn part1(dumbos: &mut [Vec<u8>]) -> u32 {
+fn part1(field: &mut [Vec<u8>]) -> u32 {
     let mut flashes = 0;
 
     for _ in 0..100 {
-        let mut flash_queue = phase1(dumbos);
+        let mut queue = phase1(field);
 
-        while let Some(next) = flash_queue.pop() {
+        while let Some(next) = queue.pop() {
             flashes += 1;
-            phase2(next, dumbos, &mut flash_queue);
+            phase2(next, field, &mut queue);
         }
     }
 
-    return flashes;
+    flashes
 }
 
-fn part2(dumbos: &mut [Vec<u8>]) -> u32 {
+fn part2(field: &mut [Vec<u8>]) -> u32 {
     let mut step = 1;
 
     loop {
         let mut flashes = 0;
-        let mut flash_queue = phase1(dumbos);
+        let mut queue = phase1(field);
 
-        while let Some(next) = flash_queue.pop() {
+        while let Some(next) = queue.pop() {
             flashes += 1;
-            phase2(next, dumbos, &mut flash_queue);
+            phase2(next, field, &mut queue);
         }
 
         if flashes == 100 {
             return step;
         }
+
         step += 1;
     }
 }
 
-fn phase1(dumbos: &mut [Vec<u8>]) -> Vec<(i32, i32)> {
-    let mut flash = vec![];
+fn phase1(field: &mut [Vec<u8>]) -> Vec<(usize, usize)> {
+    let mut queue = vec![];
 
-    for i in 0..dumbos.len() {
-        for j in 0..dumbos.len() {
-            dumbos[i][j] += 1;
+    for i in 0..field.len() {
+        for j in 0..field.len() {
+            field[i][j] += 1;
 
-            if dumbos[i][j] > 9 {
-                flash.push((i as i32, j as i32));
+            if field[i][j] > 9 {
+                queue.push((i, j));
             }
         }
     }
 
-    flash
+    queue
 }
 
-fn phase2((x, y): (i32, i32), dumbos: &mut [Vec<u8>], flash_queue: &mut Vec<(i32, i32)>) {
-    const NEIGHBORS: [(i32, i32); 8] = [
-        (-1, -1),
-        (-1, 0),
-        (-1, 1),
-        (0, -1),
-        (0, 1),
-        (1, -1),
-        (1, 0),
-        (1, 1),
-    ];
+fn phase2((row, col): (usize, usize), field: &mut [Vec<u8>], queue: &mut Vec<(usize, usize)>) {
+    field[row as usize][col as usize] = 0;
 
-    println!("flash = ({},{})", x, y);
+    for (n_row, n_col) in [
+        (row.wrapping_sub(1), col.wrapping_sub(1)),
+        (row.wrapping_sub(1), col),
+        (row.wrapping_sub(1), col + 1),
+        (row, col.wrapping_sub(1)),
+        (row, col + 1),
+        (row + 1, col.wrapping_sub(1)),
+        (row + 1, col),
+        (row + 1, col + 1),
+    ] {
+        if let Some(n) = field
+            .get_mut(n_row as usize)
+            .and_then(|row| row.get_mut(n_col as usize))
+        {
+            if *n > 0 {
+                *n += 1;
 
-    for (d_x, d_y) in NEIGHBORS {
-        let n_x = x + d_x;
-        let n_y = y + d_y;
-
-        if n_x < 0 || n_x == dumbos.len() as i32 {
-            continue;
-        }
-
-        if n_y < 0 || n_y == dumbos.len() as i32 {
-            continue;
-        }
-
-        // let n_x = (x + d_x).clamp(0, dumbos.len() as i32 - 1);
-        // let n_y = (y + d_y).clamp(0, dumbos.len() as i32 - 1);
-
-        let n = &mut dumbos[n_x as usize][n_y as usize];
-
-        // 0 - flashed
-        if *n > 0 {
-            *n += 1;
-
-            if *n > 9 && !flash_queue.contains(&(n_x, n_y)) {
-                flash_queue.push((n_x, n_y));
+                if *n > 9 && !queue.contains(&(n_row, n_col)) {
+                    queue.push((n_row, n_col));
+                }
             }
         }
     }
-
-    dumbos[x as usize][y as usize] = 0;
 }
 
 pub fn parse(line: &str) -> Vec<u8> {
