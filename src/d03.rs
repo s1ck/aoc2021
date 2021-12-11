@@ -17,7 +17,13 @@ fn part1(words: &[&str]) -> u32 {
 
     let gamma_rate = column_counts
         .into_iter()
-        .map(|n| if input_len - n > n { "1" } else { "0" })
+        .map(|n| {
+            if input_len.saturating_sub(n) > n {
+                "1"
+            } else {
+                "0"
+            }
+        })
         .collect::<String>();
 
     let gamma_rate = u32::from_str_radix(&gamma_rate, 2).unwrap();
