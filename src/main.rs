@@ -14,6 +14,7 @@ mod d08;
 mod d09;
 mod d10;
 mod d11;
+mod d12;
 
 fn main() {
     let day = std::env::args()
@@ -52,6 +53,13 @@ fn main() {
         ),
         11 => d11::run(
             read_file_with("input/d11.txt", |line| line.to_string())
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .as_slice(),
+        ),
+        12 => d12::run(
+            read_file_with("input/d12.txt", |line| line.to_string())
                 .iter()
                 .map(|s| s.as_str())
                 .collect::<Vec<_>>()
