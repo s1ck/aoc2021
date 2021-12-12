@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use graph::prelude::*;
+use indexmap::IndexSet;
 
 #[derive(Debug)]
 enum CaveSize {
@@ -6,87 +7,66 @@ enum CaveSize {
     Small,
 }
 
-struct Cave {
-    id: usize,
-    label: String,
-    size: CaveSize,
-}
-
 struct CaveSystem {
-    l_idx: HashMap<String, usize>,
-    caves: HashMap<usize, Cave>,
-    edges: HashMap<usize, Vec<usize>>,
+    g: UndirectedCsrGraph<usize, CaveSize>,
+    ids: IndexSet<String>,
 }
 
 impl CaveSystem {
-    fn new() -> Self {
-        Self {
-            l_idx: HashMap::new(),
-            caves: HashMap::new(),
-            edges: HashMap::new(),
-        }
-    }
-
     fn cave_count(&self) -> usize {
-        self.caves.len()
-    }
-
-    fn add_cave(&mut self, label: &str) -> usize {
-        *self.l_idx.entry(label.to_string()).or_insert_with(|| {
-            let size = if label.chars().any(|c| c.is_lowercase()) {
-                CaveSize::Small
-            } else {
-                CaveSize::Big
-            };
-            let id = self.caves.len();
-            let cave = Cave {
-                id,
-                label: label.to_string(),
-                size,
-            };
-            self.caves.insert(id, cave);
-
-            id
-        })
-    }
-
-    fn add_edge(&mut self, source: usize, target: usize) {
-        self.edges.entry(source).or_insert(Vec::new()).push(target);
-        self.edges.entry(target).or_insert(Vec::new()).push(source);
+        self.g.node_count()
     }
 
     fn cave_id(&self, label: &str) -> usize {
-        *self.l_idx.get(label).unwrap()
+        self.ids.get_full(label).unwrap().0
     }
 
     fn label(&self, id: usize) -> &str {
-        &self.caves.get(&id).unwrap().label
+        self.ids.get_index(id).unwrap()
     }
 
     fn size(&self, id: usize) -> &CaveSize {
-        &self.caves.get(&id).unwrap().size
+        self.g.node_value(id)
     }
 
     fn edges(&self, id: usize) -> &[usize] {
-        &self.edges.get(&id).unwrap()
+        &self.g.neighbors(id)
     }
 }
 
 impl From<&[&str]> for CaveSystem {
     fn from(lines: &[&str]) -> Self {
-        let mut cave_system = CaveSystem::new();
+        let mut ids = IndexSet::new();
+        let mut edges = Vec::new();
 
         lines
             .iter()
             .map(|line| line.trim())
             .map(|line| line.split_once('-').unwrap())
             .for_each(|(source, target)| {
-                let source = cave_system.add_cave(source);
-                let target = cave_system.add_cave(target);
-                cave_system.add_edge(source, target);
+                let (source, _) = ids.insert_full(source.to_string());
+                let (target, _) = ids.insert_full(target.to_string());
+                edges.push((source, target));
             });
 
-        cave_system
+        let node_values = ids
+            .iter()
+            .map(|cave| {
+                if cave.chars().any(|c| c.is_lowercase()) {
+                    CaveSize::Small
+                } else {
+                    CaveSize::Big
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let g = GraphBuilder::new()
+            .csr_layout(CsrLayout::Deduplicated)
+            .edges(edges)
+            .node_values(node_values)
+            .build();
+
+        Self { g, ids }
     }
 }
 
