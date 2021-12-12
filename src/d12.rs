@@ -102,15 +102,7 @@ fn part1(cave_system: &CaveSystem) -> u32 {
 
     let mut path = vec![];
 
-    dfs(
-        cave_system,
-        start,
-        end,
-        &mut path,
-        &|cave_system, path, cave| {
-            matches!(cave_system.size(cave), CaveSize::Small) && path.contains(&cave)
-        },
-    )
+    dfs(cave_system, start, start, end, &mut path, false)
 }
 
 fn part2(cave_system: &CaveSystem) -> u32 {
@@ -119,65 +111,37 @@ fn part2(cave_system: &CaveSystem) -> u32 {
 
     let mut path = vec![];
 
-    dfs(
-        cave_system,
-        start,
-        end,
-        &mut path,
-        &|cave_system, path, cave| {
-            if cave_system.label(cave) == "end" {
-                return false;
-            }
-
-            if matches!(cave_system.size(cave), CaveSize::Small) {
-                let contains = path.contains(&cave);
-
-                if cave_system.label(cave) == "start" && contains {
-                    return true;
-                }
-
-                return path
-                    .iter()
-                    .filter(|c| matches!(cave_system.size(**c), &CaveSize::Small))
-                    .fold(HashMap::new(), |mut map, cave| {
-                        *map.entry(cave).or_insert(0) += 1;
-                        map
-                    })
-                    .values()
-                    .any(|count| *count > 1 && contains);
-            }
-
-            false
-        },
-    )
+    dfs(cave_system, start, start, end, &mut path, true)
 }
 
-fn dfs<F>(
+fn dfs(
     cave_system: &CaveSystem,
     current_cave: usize,
-    target_cave: usize,
+    source: usize,
+    target: usize,
     path: &mut Vec<usize>,
-    halt_fn: &F,
-) -> u32
-where
-    F: Fn(&CaveSystem, &mut Vec<usize>, usize) -> bool,
-{
-    if halt_fn(cave_system, path, current_cave) {
-        return 0;
-    }
-
-    if current_cave == target_cave {
+    can_revisit: bool,
+) -> u32 {
+    if current_cave == target {
         return 1;
     }
 
+    let can_revisit = match (
+        matches!(cave_system.size(current_cave), CaveSize::Small),
+        path.contains(&current_cave),
+        can_revisit,
+        current_cave == source,
+    ) {
+        (true, true, _, true) | (true, true, false, _) => return 0,
+        (true, true, true, _) => false,
+        _ => can_revisit,
+    };
+
     path.push(current_cave);
-
     let mut count = 0;
-
-    for n in cave_system.edges(current_cave) {
-        count += dfs(cave_system, *n, target_cave, path, halt_fn);
+    for neighbor in cave_system.edges(current_cave) {
+        count += dfs(cave_system, *neighbor, source, target, path, can_revisit);
     }
-
     path.pop();
 
     return count;
