@@ -15,6 +15,7 @@ mod d09;
 mod d10;
 mod d11;
 mod d12;
+mod d13;
 
 fn main() {
     let day = std::env::args()
@@ -64,6 +65,11 @@ fn main() {
                 .map(|s| s.as_str())
                 .collect::<Vec<_>>()
                 .as_slice(),
+        ),
+        13 => d13::run(
+            std::fs::read_to_string("input/d13.txt")
+                .expect("file not found")
+                .as_str(),
         ),
         _ => panic!("invalid input"),
     };
