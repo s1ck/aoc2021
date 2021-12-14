@@ -48,20 +48,20 @@ fn part2(template: Vec<char>, rules: &HashMap<(char, char), char>, steps: u32) -
         counts
     });
 
-    for _ in 0..steps {
-        let mut next = counts.clone();
+    let mut next = HashMap::new();
 
+    for _ in 0..steps {
+        next.clear();
         for (t @ (left, right), count) in counts.iter() {
             let mid = rules.get(t).unwrap();
 
-            *next.entry((*left, *right)).or_insert(0) -= count;
             *next.entry((*left, *mid)).or_insert(0) += count;
             *next.entry((*mid, *right)).or_insert(0) += count;
 
             *char_counts.entry(*mid).or_insert(0) += count;
         }
 
-        counts = next;
+        std::mem::swap(&mut counts, &mut next);
     }
 
     diff(&char_counts)
