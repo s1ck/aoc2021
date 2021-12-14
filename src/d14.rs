@@ -6,7 +6,7 @@ pub fn run(input: &str) -> (usize, usize) {
     (part1(&template, &rules, 10), part2(&template, &rules, 40))
 }
 
-// brute-force
+// vec-based
 fn part1(template: &[char], rules: &HashMap<(char, char), char>, steps: u32) -> usize {
     let mut next = template.to_vec();
 
@@ -28,7 +28,7 @@ fn part1(template: &[char], rules: &HashMap<(char, char), char>, steps: u32) -> 
         counts
     });
 
-    diff(&counts)
+    counts.values().max().unwrap() - counts.values().min().unwrap()
 }
 
 // map-based
@@ -61,18 +61,7 @@ fn part2(template: &[char], rules: &HashMap<(char, char), char>, steps: u32) -> 
         std::mem::swap(&mut counts, &mut next);
     }
 
-    diff(&char_counts)
-}
-
-fn diff(counts: &HashMap<char, usize>) -> usize {
-    let mut counts = counts.iter().collect::<Vec<_>>();
-
-    counts.sort_by(|t1, t2| t1.1.cmp(t2.1));
-
-    let min = counts[0].1;
-    let max = counts[counts.len() - 1].1;
-
-    max - min
+    char_counts.values().max().unwrap() - char_counts.values().min().unwrap()
 }
 
 fn parse(input: &str) -> (Vec<char>, HashMap<(char, char), char>) {
