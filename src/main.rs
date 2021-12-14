@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![feature(array_windows)]
 
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -16,6 +17,7 @@ mod d10;
 mod d11;
 mod d12;
 mod d13;
+mod d14;
 
 fn main() {
     let day = std::env::args()
@@ -68,6 +70,11 @@ fn main() {
         ),
         13 => d13::run(
             std::fs::read_to_string("input/d13.txt")
+                .expect("file not found")
+                .as_str(),
+        ),
+        14 => d14::run(
+            std::fs::read_to_string("input/d14.txt")
                 .expect("file not found")
                 .as_str(),
         ),
