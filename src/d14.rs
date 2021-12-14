@@ -3,15 +3,12 @@ use std::collections::HashMap;
 pub fn run(input: &str) -> (usize, usize) {
     let (template, rules) = parse(input);
 
-    (
-        part1(template.clone(), &rules, 10),
-        part2(template, &rules, 40),
-    )
+    (part1(&template, &rules, 10), part2(&template, &rules, 40))
 }
 
 // brute-force
-fn part1(template: Vec<char>, rules: &HashMap<(char, char), char>, steps: u32) -> usize {
-    let mut next = template;
+fn part1(template: &[char], rules: &HashMap<(char, char), char>, steps: u32) -> usize {
+    let mut next = template.to_vec();
 
     for _ in 0..steps {
         next = next
@@ -35,7 +32,7 @@ fn part1(template: Vec<char>, rules: &HashMap<(char, char), char>, steps: u32) -
 }
 
 // map-based
-fn part2(template: Vec<char>, rules: &HashMap<(char, char), char>, steps: u32) -> usize {
+fn part2(template: &[char], rules: &HashMap<(char, char), char>, steps: u32) -> usize {
     let mut counts = template
         .array_windows()
         .fold(HashMap::new(), |mut counts, [left, right]| {
@@ -125,13 +122,13 @@ mod tests {
     fn test_part1() {
         let (template, rules) = parse(INPUT);
 
-        assert_eq!(part2(template, &rules, 10), 1588);
+        assert_eq!(part1(&template, &rules, 10), 1588);
     }
 
     #[test]
     fn test_part2() {
         let (template, rules) = parse(INPUT);
 
-        assert_eq!(part2(template, &rules, 40), 2188189693529);
+        assert_eq!(part2(&template, &rules, 40), 2188189693529);
     }
 }
