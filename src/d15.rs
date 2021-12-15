@@ -121,6 +121,8 @@ fn parse(lines: &str, scale: usize) -> UndirectedCsrGraph<usize, (), u32> {
 
 #[cfg(test)]
 mod tests {
+    use test::Bencher;
+
     use super::*;
 
     const INPUT: &str = r#"1163751742
@@ -151,5 +153,25 @@ mod tests {
         assert_eq!(g.edge_count(), 4900);
 
         assert_eq!(dijkstra(&g, 0, g.node_count() - 1), 315);
+    }
+
+    #[bench]
+    fn bench_part1(b: &mut Bencher) {
+        let input = std::fs::read_to_string("input/d15.txt").expect("file not found");
+
+        b.iter(|| {
+            let g = parse(input.as_str(), 1);
+            dijkstra(&g, 0, g.node_count() - 1)
+        });
+    }
+
+    #[bench]
+    fn bench_part2(b: &mut Bencher) {
+        let input = std::fs::read_to_string("input/d15.txt").expect("file not found");
+
+        b.iter(|| {
+            let g = parse(input.as_str(), 5);
+            dijkstra(&g, 0, g.node_count() - 1)
+        });
     }
 }

@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 #![feature(array_windows)]
+#![feature(test)]
+
+extern crate test;
 
 use std::fmt::Debug;
 use std::str::FromStr;
