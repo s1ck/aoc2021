@@ -25,7 +25,6 @@ impl PartialOrd for State {
 
 pub fn run(lines: &str) -> (usize, usize) {
     let g1 = parse(lines, 1);
-
     let g2 = parse(lines, 5);
 
     (
@@ -34,12 +33,11 @@ pub fn run(lines: &str) -> (usize, usize) {
     )
 }
 
-fn dijkstra(g: &UndirectedCsrGraph<usize, u8, u32>, start: usize, end: usize) -> u32 {
+fn dijkstra(g: &UndirectedCsrGraph<usize, (), u32>, start: usize, end: usize) -> u32 {
     let mut dist = (0..g.node_count()).map(|_| u32::MAX).collect::<Vec<_>>();
     let mut heap = BinaryHeap::new();
 
-    let cost = *g.node_value(start) as u32;
-    dist[start] = cost;
+    dist[start] = 0;
 
     heap.push(State {
         cost: 0,
@@ -73,8 +71,8 @@ fn dijkstra(g: &UndirectedCsrGraph<usize, u8, u32>, start: usize, end: usize) ->
     u32::MAX
 }
 
-fn parse(lines: &str, scale: usize) -> UndirectedCsrGraph<usize, u8, u32> {
-    let mut field = lines
+fn parse(lines: &str, scale: usize) -> UndirectedCsrGraph<usize, (), u32> {
+    let field = lines
         .split('\n')
         .map(|line| line.trim())
         .map(|line| line.as_bytes().iter().map(|b| b - b'0').collect::<Vec<_>>())
@@ -85,59 +83,31 @@ fn parse(lines: &str, scale: usize) -> UndirectedCsrGraph<usize, u8, u32> {
     let new_height = height * scale;
     let new_width = width * scale;
 
-    if new_height > height || new_width > width {
-        field.resize(new_height, vec![]);
-        field.iter_mut().for_each(|row| row.resize(new_width, 0));
-    }
-
-    for _ in 1..scale {
-        for row in 0..height {
-            for col in 0..width {
-                let n = field[row][col];
-
-                for s_row in 0..scale {
-                    for s_col in 0..scale {
-                        if s_row == 0 && s_col == 0 {
-                            continue;
-                        }
-
-                        let n = field[row][col] as usize - 1;
-
-                        let new_n = (n + s_row + s_col) % 9 + 1;
-
-                        let n_row = row + (s_row * height);
-                        let n_col = col + (s_col * width);
-
-                        field[n_row][n_col] = new_n as u8;
-                    }
-                }
-            }
-        }
-    }
-
-    let rows = field.len();
-    let cols = field[0].len();
-
-    let mut node_values = Vec::new();
     let mut edges = Vec::new();
 
-    for row in 0..rows {
-        for col in 0..cols {
-            let source = row * cols + col;
-            node_values.push(field[row][col]);
+    for row in 0..height {
+        for col in 0..width {
+            for scale_row in 0..scale {
+                for scale_col in 0..scale {
+                    let n = field[row][col] as usize - 1;
+                    let new_n = (n + scale_row + scale_col) % 9 + 1;
 
-            for (n_row, n_col) in [
-                (row.wrapping_sub(1), col),
-                (row, col.wrapping_sub(1)),
-                (row, col + 1),
-                (row + 1, col),
-            ] {
-                if let Some(n) = field
-                    .get(n_row as usize)
-                    .and_then(|row| row.get(n_col as usize))
-                {
-                    let target = n_row * cols + n_col;
-                    edges.push((source, target, *n as u32));
+                    let s_row = row + (scale_row * height);
+                    let s_col = col + (scale_col * width);
+
+                    let source = s_row * new_width + s_col;
+
+                    for (n_row, n_col) in [
+                        (s_row.wrapping_sub(1), s_col),
+                        (s_row, s_col.wrapping_sub(1)),
+                        (s_row, s_col + 1),
+                        (s_row + 1, s_col),
+                    ] {
+                        if n_row < new_height && n_col < new_width {
+                            let target = n_row * new_width + n_col;
+                            edges.push((target, source, new_n as u32));
+                        }
+                    }
                 }
             }
         }
@@ -146,7 +116,6 @@ fn parse(lines: &str, scale: usize) -> UndirectedCsrGraph<usize, u8, u32> {
     GraphBuilder::new()
         .csr_layout(CsrLayout::Deduplicated)
         .edges_with_values(edges)
-        .node_values(node_values)
         .build()
 }
 
