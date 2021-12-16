@@ -1,15 +1,15 @@
-pub fn run(lines: &str) -> (usize, usize) {
-    let lines = parse(lines);
+pub fn run(line: &str) -> (usize, usize) {
+    let line = parse(line);
 
-    (part1(&lines), part2(&lines))
+    (part1(&line), part2(&line))
 }
 
-fn part1(lines: &[String]) -> usize {
-    parse_packet(lines[0].as_str()).0
+fn part1(line: &str) -> usize {
+    parse_packet(line).0
 }
 
-fn part2(lines: &[String]) -> usize {
-    parse_packet(lines[0].as_str()).2
+fn part2(line: &str) -> usize {
+    parse_packet(line).2
 }
 
 fn parse_packet(p: &str) -> (usize, usize, usize) {
@@ -25,42 +25,13 @@ fn parse_packet(p: &str) -> (usize, usize, usize) {
             let (version_sum, read, values) = parse_operator(&p[offset..]);
 
             let value = match type_id {
-                // sum
-                0 => values.iter().fold(0, |sum, next| sum + next),
-                // product
-                1 => values.iter().fold(1, |prod, next| prod * next),
-                // min
-                2 => values[1..]
-                    .iter()
-                    .fold(values[0], |min, next| if *next < min { *next } else { min }),
-                // max
-                3 => values[1..]
-                    .iter()
-                    .fold(values[0], |max, next| if *next > max { *next } else { max }),
-                // greater than
-                5 => {
-                    if values[0] > values[1] {
-                        1
-                    } else {
-                        0
-                    }
-                }
-                // less than
-                6 => {
-                    if values[0] < values[1] {
-                        1
-                    } else {
-                        0
-                    }
-                }
-                // equal
-                7 => {
-                    if values[0] == values[1] {
-                        1
-                    } else {
-                        0
-                    }
-                }
+                0 => values.iter().sum(),
+                1 => values.iter().product(),
+                2 => *values.iter().min().unwrap(),
+                3 => *values.iter().max().unwrap(),
+                5 => (values[0] > values[1]) as usize,
+                6 => (values[0] < values[1]) as usize,
+                7 => (values[0] == values[1]) as usize,
                 _ => unreachable!(),
             };
 
@@ -76,8 +47,8 @@ fn parse_packet(p: &str) -> (usize, usize, usize) {
         (u32::from_str_radix(&p[0..3], 2).unwrap(), 3)
     }
 
-    fn parse_type_id(p: &str) -> (u32, usize) {
-        (u32::from_str_radix(&p[0..3], 2).unwrap(), 3)
+    fn parse_type_id(p: &str) -> (u8, usize) {
+        (u8::from_str_radix(&p[0..3], 2).unwrap(), 3)
     }
 
     fn parse_length_type_id(p: &str) -> (u8, usize) {
@@ -98,9 +69,7 @@ fn parse_packet(p: &str) -> (usize, usize, usize) {
             }
         }
 
-        let val = usize::from_str_radix(number.as_str(), 2).unwrap();
-
-        (0, read, val)
+        (0, read, usize::from_str_radix(number.as_str(), 2).unwrap())
     }
 
     fn parse_operator(p: &str) -> (usize, usize, Vec<usize>) {
@@ -141,21 +110,18 @@ fn parse_packet(p: &str) -> (usize, usize, usize) {
     }
 }
 
-fn parse(lines: &str) -> Vec<String> {
-    lines
-        .split('\n')
-        .map(|line| line.trim())
-        .map(|line| {
-            line.chars()
-                .map(|c| c.to_digit(16).unwrap())
-                .map(|c| format!("{:04b}", c))
-                .collect::<String>()
-        })
-        .collect::<Vec<_>>()
+fn parse(line: &str) -> String {
+    line.trim()
+        .chars()
+        .map(|c| c.to_digit(16).unwrap())
+        .map(|c| format!("{:04b}", c))
+        .collect::<String>()
 }
 
 #[cfg(test)]
 mod tests {
+
+    use test::Bencher;
 
     use super::*;
 
@@ -205,5 +171,26 @@ mod tests {
 
         let input = parse("9C0141080250320F1802104A08");
         assert_eq!(part2(&input), 1);
+    }
+
+    #[bench]
+    fn bench_parse(b: &mut Bencher) {
+        let input = std::fs::read_to_string("input/d16.txt").expect("file not found");
+
+        b.iter(|| parse(input.as_str()));
+    }
+
+    #[bench]
+    fn bench_part1(b: &mut Bencher) {
+        let input = std::fs::read_to_string("input/d16.txt").expect("file not found");
+        let line = parse(input.as_str());
+        b.iter(|| part1(&line));
+    }
+
+    #[bench]
+    fn bench_part2(b: &mut Bencher) {
+        let input = std::fs::read_to_string("input/d16.txt").expect("file not found");
+        let line = parse(input.as_str());
+        b.iter(|| part2(&line));
     }
 }
