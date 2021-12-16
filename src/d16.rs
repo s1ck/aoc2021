@@ -159,65 +159,51 @@ mod tests {
 
     use super::*;
 
-    const INPUT_0: &str = "D2FE28";
-    const INPUT_1: &str = "8A004A801A8002F478";
-    const INPUT_2: &str = "620080001611562C8802118E34";
-    const INPUT_3: &str = "C0015000016115A2E0802F182340";
-    const INPUT_4: &str = "A0016C880162017C3686B18A3D4780";
-    const INPUT_5: &str = "38006F45291200";
-
     #[test]
-    fn test_part1_0() {
-        let input_0 = parse(INPUT_0);
-        assert_eq!(part1(&input_0), 6)
+    fn test_part1() {
+        let input = parse("D2FE28");
+        assert_eq!(part1(&input), 6);
+
+        let input = parse("8A004A801A8002F478");
+        assert_eq!(part1(&input), 16);
+
+        let input = parse("620080001611562C8802118E34");
+        assert_eq!(part1(&input), 12);
+
+        let input = parse("C0015000016115A2E0802F182340");
+        assert_eq!(part1(&input), 23);
+
+        let input = parse("A0016C880162017C3686B18A3D4780");
+        assert_eq!(part1(&input), 31);
+
+        let input = parse("38006F45291200");
+        assert_eq!(part1(&input), 9);
     }
 
     #[test]
-    fn test_part1_1() {
-        let input_1 = parse(INPUT_1);
-        assert_eq!(part1(&input_1), 16)
-    }
-
-    #[test]
-    fn test_part1_2() {
-        let input_2 = parse(INPUT_2);
-        assert_eq!(part1(&input_2), 12)
-    }
-
-    #[test]
-    fn test_part1_3() {
-        let input_3 = parse(INPUT_3);
-        assert_eq!(part1(&input_3), 23)
-    }
-
-    #[test]
-    fn test_part1_4() {
-        let input_4 = parse(INPUT_4);
-        assert_eq!(part1(&input_4), 31)
-    }
-
-    #[test]
-    fn test_part1_5() {
-        let input_5 = parse(INPUT_5);
-
-        assert_eq!(part1(&input_5), 9)
-    }
-
-    #[test]
-    fn test_part2_0() {
+    fn test_part2() {
         let input = parse("C200B40A82");
         assert_eq!(part2(&input), 3);
-    }
 
-    #[test]
-    fn test_part2_1() {
         let input = parse("04005AC33890");
         assert_eq!(part2(&input), 54);
-    }
 
-    #[test]
-    fn test_part2_2() {
         let input = parse("880086C3E88112");
         assert_eq!(part2(&input), 7);
+
+        let input = parse("CE00C43D881120");
+        assert_eq!(part2(&input), 9);
+
+        let input = parse("D8005AC2A8F0");
+        assert_eq!(part2(&input), 1);
+
+        let input = parse("F600BC2D8F");
+        assert_eq!(part2(&input), 0);
+
+        let input = parse("9C005AC2F8F0");
+        assert_eq!(part2(&input), 0);
+
+        let input = parse("9C0141080250320F1802104A08");
+        assert_eq!(part2(&input), 1);
     }
 }
