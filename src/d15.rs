@@ -85,15 +85,15 @@ fn parse(lines: &str, scale: usize) -> UndirectedCsrGraph<usize, (), u32> {
 
     let mut edges = Vec::new();
 
-    for row in 0..height {
-        for col in 0..width {
-            for scale_row in 0..scale {
-                for scale_col in 0..scale {
-                    let n = field[row][col] as usize - 1;
-                    let new_n = (n + scale_row + scale_col) % 9 + 1;
+    (0..height).for_each(|row| {
+        (0..width).for_each(|col| {
+            (0..scale).for_each(|s_row| {
+                (0..scale).for_each(|s_col| {
+                    let n = field[row][col] as usize;
+                    let n = (n - 1 + s_row + s_col) % 9 + 1;
 
-                    let s_row = row + (scale_row * height);
-                    let s_col = col + (scale_col * width);
+                    let s_row = row + (s_row * height);
+                    let s_col = col + (s_col * width);
 
                     let source = s_row * new_width + s_col;
 
@@ -105,13 +105,13 @@ fn parse(lines: &str, scale: usize) -> UndirectedCsrGraph<usize, (), u32> {
                     ] {
                         if n_row < new_height && n_col < new_width {
                             let target = n_row * new_width + n_col;
-                            edges.push((target, source, new_n as u32));
+                            edges.push((target, source, n as u32));
                         }
                     }
-                }
-            }
-        }
-    }
+                })
+            })
+        })
+    });
 
     GraphBuilder::new()
         .csr_layout(CsrLayout::Deduplicated)

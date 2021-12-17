@@ -30,7 +30,7 @@ impl CaveSystem {
     }
 
     fn edges(&self, id: usize) -> &[usize] {
-        &self.g.neighbors(id)
+        self.g.neighbors(id)
     }
 }
 
@@ -124,7 +124,7 @@ fn dfs(
     }
     path.pop();
 
-    return count;
+    count
 }
 
 #[cfg(test)]

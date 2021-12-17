@@ -1,17 +1,20 @@
 use std::collections::HashSet;
 
+type Coords = Vec<(u32, u32)>;
+type Folds = Vec<(char, u32)>;
+
 pub fn run(lines: &str) -> (usize, usize) {
     let (coords, folds) = parse(lines);
 
     (part1(&coords, &folds), part2(&coords, &folds))
 }
 
-fn part1(coords: &[(u32, u32)], folds: &[(char, u32)]) -> usize {
+fn part1(coords: &Coords, folds: &Folds) -> usize {
     fold(coords, folds[0]).len()
 }
 
-fn part2(coords: &[(u32, u32)], folds: &[(char, u32)]) -> usize {
-    let coords = coords.iter().cloned().collect::<Vec<_>>();
+fn part2(coords: &Coords, folds: &Folds) -> usize {
+    let coords = coords.to_vec();
     let coords = folds.iter().fold(coords, |c, f| fold(&c, *f));
 
     let (width, height) = coords.iter().max().unwrap();
@@ -28,7 +31,7 @@ fn part2(coords: &[(u32, u32)], folds: &[(char, u32)]) -> usize {
     0
 }
 
-fn fold(coords: &[(u32, u32)], (axis, line): (char, u32)) -> Vec<(u32, u32)> {
+fn fold(coords: &Coords, (axis, line): (char, u32)) -> Coords {
     coords
         .iter()
         .fold(HashSet::new(), |mut set, (x, y)| {
@@ -43,7 +46,7 @@ fn fold(coords: &[(u32, u32)], (axis, line): (char, u32)) -> Vec<(u32, u32)> {
         .collect::<Vec<_>>()
 }
 
-fn parse(lines: &str) -> (Vec<(u32, u32)>, Vec<(char, u32)>) {
+fn parse(lines: &str) -> (Coords, Folds) {
     let (coords, folds) = lines.split_once("\n\n").unwrap();
 
     let coords = coords
@@ -59,7 +62,7 @@ fn parse(lines: &str) -> (Vec<(u32, u32)>, Vec<(char, u32)>) {
         .map(|line| line.trim())
         .map(|line| line.split(' ').nth(2).unwrap())
         .map(|fold| fold.split_once('=').unwrap())
-        .map(|(axis, pos)| (axis.chars().nth(0).unwrap(), pos.parse::<u32>().unwrap()))
+        .map(|(axis, pos)| (axis.chars().next().unwrap(), pos.parse::<u32>().unwrap()))
         .collect::<Vec<_>>();
 
     (coords, folds)

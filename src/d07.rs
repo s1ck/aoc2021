@@ -19,7 +19,7 @@ fn part1(positions: &[i32]) -> i32 {
 }
 
 fn part1_median(positions: &[i32]) -> i32 {
-    let mut positions = positions.iter().copied().collect::<Vec<_>>();
+    let mut positions = positions.to_vec();
     positions.sort_unstable();
     let median = positions[positions.len() / 2];
     positions.into_iter().map(|pos| (pos - median).abs()).sum()
