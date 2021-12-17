@@ -5,14 +5,13 @@ pub fn run(line: &str) -> (usize, usize) {
     (peak as usize, vels as usize)
 }
 
-fn simulate(target_area: ((i32, i32), (i32, i32))) -> (i32, usize) {
+fn simulate(target @ ((_, x_max), (y_min, _)): ((i32, i32), (i32, i32))) -> (i32, usize) {
     let mut peak = 0;
     let mut vels = 0;
 
-    // target area: x=156..202, y=-110..-69
-    for y_v in -110..200 {
-        for x_v in 1..250 {
-            let (hit, y_max) = fire(x_v, y_v, target_area);
+    for y_v in y_min..=y_min.abs() {
+        for x_v in 1..=x_max {
+            let (hit, y_max) = fire(x_v, y_v, target);
             if hit {
                 vels += 1;
                 peak = i32::max(peak, y_max);
@@ -84,6 +83,7 @@ mod tests {
 
     const INPUT: &str = "target area: x=20..30, y=-10..-5";
     const INPUT1: &str = "target area: x=156..202, y=-110..-69";
+    const INPUT2: &str = "target area: x=70..125, y=-159..-121";
 
     #[test]
     fn test_part1() {
@@ -111,5 +111,15 @@ mod tests {
         let target_area = parse(INPUT1);
 
         assert_eq!(simulate(target_area).1, 3202);
+    }
+
+    #[test]
+    fn test_paul() {
+        let target_area = parse(INPUT2);
+
+        let (peak, vels) = simulate(target_area);
+
+        assert_eq!(peak, 12561);
+        assert_eq!(vels, 3785);
     }
 }
