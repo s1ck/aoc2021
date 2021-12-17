@@ -1,31 +1,28 @@
 pub fn run(line: &str) -> (usize, usize) {
-    let area = parse(line);
-    let (peak, vels) = simulate(area);
-
-    (peak as usize, vels as usize)
+    simulate(parse(line))
 }
 
-fn simulate(target @ ((_, x_max), (y_min, _)): ((i32, i32), (i32, i32))) -> (i32, usize) {
+fn simulate(target @ ((_, x_max), (y_min, _)): ((i32, i32), (i32, i32))) -> (usize, usize) {
     let mut peak = 0;
     let mut vels = 0;
 
-    for y_v in y_min..=y_min.abs() {
-        for x_v in 1..=x_max {
-            let (hit, y_max) = fire(x_v, y_v, target);
+    (1..=x_max).for_each(|d_x| {
+        (y_min..=y_min.abs()).for_each(|d_y| {
+            let (hit, y_max) = fire(d_x, d_y, target);
             if hit {
                 vels += 1;
                 peak = i32::max(peak, y_max);
             }
-        }
-    }
+        })
+    });
 
-    return (peak, vels);
+    (peak as usize, vels)
 }
 
 fn fire(
     mut x_v: i32,
     mut y_v: i32,
-    ((x_from, x_to), (y_from, y_to)): ((i32, i32), (i32, i32)),
+    ((x_min, x_max), (y_min, y_max)): ((i32, i32), (i32, i32)),
 ) -> (bool, i32) {
     let mut x = 0;
     let mut y = 0;
@@ -35,41 +32,27 @@ fn fire(
         x += x_v;
         y += y_v;
 
-        if x_v > 0 {
-            x_v -= 1
-        } else if x_v < 0 {
-            x_v += 1
-        };
-
+        x_v -= x_v.signum();
         y_v -= 1;
 
-        if y > peak {
-            peak = y;
-        }
+        peak = peak.max(y);
 
-        if x >= x_from && x <= x_to && y >= y_from && y <= y_to {
+        if x >= x_min && x <= x_max && y >= y_min && y <= y_max {
             return (true, peak);
         }
-        if x > x_to || y < y_from {
-            return (false, 0);
+        if x > x_max || y < y_min {
+            return (false, peak);
         }
     }
 }
 
 fn parse(line: &str) -> ((i32, i32), (i32, i32)) {
-    let area = line.split_once(": ").unwrap().1;
-    let (x, y) = area.split_once(", ").unwrap();
-    let x_range = x
-        .split_once('=')
-        .unwrap()
-        .1
+    let (x, y) = line[13..].split_once(", ").unwrap();
+    let x_range = x[2..]
         .split_once("..")
         .map(|(l, h)| (l.parse::<i32>().unwrap(), h.parse::<i32>().unwrap()))
         .unwrap();
-    let y_range = y
-        .split_once('=')
-        .unwrap()
-        .1
+    let y_range = y[2..]
         .split_once("..")
         .map(|(l, h)| (l.parse::<i32>().unwrap(), h.parse::<i32>().unwrap()))
         .unwrap();
