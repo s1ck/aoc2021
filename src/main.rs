@@ -23,6 +23,7 @@ mod d13;
 mod d14;
 mod d15;
 mod d16;
+mod d17;
 
 fn main() {
     let day = std::env::args()
@@ -90,6 +91,11 @@ fn main() {
         ),
         16 => d16::run(
             std::fs::read_to_string("input/d16.txt")
+                .expect("file not found")
+                .as_str(),
+        ),
+        17 => d17::run(
+            std::fs::read_to_string("input/d17.txt")
                 .expect("file not found")
                 .as_str(),
         ),
