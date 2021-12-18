@@ -67,16 +67,14 @@ impl Tree {
         let mut tree = Self::Pair(Box::new((self, other)));
 
         loop {
-            let (next, explode) = tree.explode(0);
+            let (mut next, explode) = tree.explode(0);
 
             if explode.is_some() {
                 tree = next;
                 continue;
             }
 
-            let (next, did_split) = next.split();
-
-            if !did_split {
+            if !next.split() {
                 return next;
             }
 
@@ -139,24 +137,20 @@ impl Tree {
         }
     }
 
-    fn split(&self) -> (Self, bool) {
+    fn split(&mut self) -> bool {
         match self {
-            Tree::Reg(v) if *v > 9 => (
-                Tree::Pair(Box::new((Tree::Reg(*v / 2), Tree::Reg((*v + 1) / 2)))),
-                true,
-            ),
-            Tree::Pair(pair) => {
-                let (lhs, lhs_split) = pair.0.split();
-
-                let (rhs, rhs_split) = if !lhs_split {
-                    pair.1.split()
-                } else {
-                    (pair.1.clone(), false)
-                };
-
-                (Tree::Pair(Box::new((lhs, rhs))), lhs_split || rhs_split)
+            Tree::Reg(v) if *v > 9 => {
+                *self = Tree::Pair(Box::new((Tree::Reg(*v / 2), Tree::Reg((*v + 1) / 2))));
+                true
             }
-            _ => (self.clone(), false),
+            Tree::Pair(pair) => {
+                let lhs_split = pair.0.split();
+
+                let rhs_split = if !lhs_split { pair.1.split() } else { false };
+
+                lhs_split || rhs_split
+            }
+            _ => false,
         }
     }
 }
@@ -294,7 +288,13 @@ mod tests {
         ];
 
         assert_eq!(
-            actual.iter().map(|tree| tree.split().0).collect::<Vec<_>>(),
+            actual
+                .into_iter()
+                .map(|mut tree| {
+                    tree.split();
+                    tree
+                })
+                .collect::<Vec<_>>(),
             expected
         )
     }
