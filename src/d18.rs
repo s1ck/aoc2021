@@ -5,11 +5,11 @@ pub fn run(trees: Vec<Tree>) -> (usize, usize) {
 }
 
 fn part1(trees: Vec<Tree>) -> usize {
-    let sum = trees[1..]
-        .iter()
-        .fold(trees[0].clone(), |t, next| t.add(next.clone()));
-
-    sum.magnitude() as usize
+    trees
+        .into_iter()
+        .reduce(|t1, t2| t1.add(t2))
+        .unwrap()
+        .magnitude() as usize
 }
 
 fn part2(trees: Vec<Tree>) -> usize {
@@ -97,12 +97,12 @@ impl Tree {
     }
 
     fn explode(&self) -> Self {
-        return Tree::explode_inner(self, 0).0;
+        Tree::explode_inner(self, 0).0
     }
 
     fn explode_inner(t: &Tree, depth: usize) -> (Tree, Option<(Option<u8>, Option<u8>)>, bool) {
         if depth < 4 {
-            return match t {
+            match t {
                 Tree::Pair(lhs, rhs) => {
                     let (new_lhs, exploded, did_explode) = Tree::explode_inner(lhs, depth + 1);
 
@@ -145,9 +145,9 @@ impl Tree {
                     )
                 }
                 _ => (t.clone(), None, false),
-            };
+            }
         } else {
-            return match t {
+            match t {
                 Tree::Pair(left, right) => {
                     let l = match **left {
                         Tree::Reg(l) => l,
@@ -162,7 +162,7 @@ impl Tree {
                     (Tree::Reg(0), Some((Some(l), Some(r))), true)
                 }
                 reg => (reg.clone(), None, false),
-            };
+            }
         }
     }
 
@@ -234,6 +234,8 @@ fn parse(bytes: &[u8]) -> (Tree, &[u8]) {
 #[cfg(test)]
 mod tests {
 
+    use test::Bencher;
+
     use super::*;
 
     const INPUT: &str = r#"[[[0,[5,8]],[[1,7],[9,6]]],[[4,[1,2]],[[1,4],2]]]
@@ -248,35 +250,7 @@ mod tests {
                            [[[[5,2],5],[8,[3,7]]],[[5,[7,5]],[4,4]]]"#;
 
     #[test]
-    fn test_part2() {
-        let trees = INPUT
-            .split('\n')
-            .map(|line| line.trim().parse::<Tree>().unwrap())
-            .collect::<Vec<Tree>>();
-
-        assert_eq!(part2(trees), 3993);
-    }
-
-    #[test]
-    fn test_parse_1() {
-        let tree = "[4,2]".parse::<Tree>().unwrap();
-        assert_eq!(tree, Tree::of((4, 2)));
-    }
-
-    #[test]
-    fn test_parse_2() {
-        let tree = "[4,[8,4]]".parse::<Tree>().unwrap();
-        assert_eq!(tree, Tree::of((4, (8, 4))));
-    }
-
-    #[test]
-    fn test_parse_3() {
-        let tree = "[[1,[2,3]],[4,5]]".parse::<Tree>().unwrap();
-        assert_eq!(tree, Tree::of(((1, (2, 3)), (4, 5))))
-    }
-
-    #[test]
-    fn test_parse_input() {
+    fn test_parse() {
         let actual = INPUT
             .split('\n')
             .map(|line| line.trim().parse::<Tree>().unwrap())
@@ -300,20 +274,27 @@ mod tests {
     }
 
     #[test]
-    fn test_add() {
-        let lhs = "[[[[4,3],4],4],[7,[[8,4],9]]]".parse::<Tree>().unwrap();
-        let rhs = "[1,1]".parse::<Tree>().unwrap();
+    fn test_part1() {
+        let trees = INPUT
+            .split('\n')
+            .map(|line| line.trim().parse::<Tree>().unwrap())
+            .collect::<Vec<Tree>>();
 
-        let sum = lhs.add(rhs);
-
-        assert_eq!(
-            sum,
-            "[[[[0,7],4],[[7,8],[6,0]]],[8,1]]".parse::<Tree>().unwrap()
-        );
+        assert_eq!(part1(trees), 4140);
     }
 
     #[test]
-    fn test_add_multiple() {
+    fn test_part2() {
+        let trees = INPUT
+            .split('\n')
+            .map(|line| line.trim().parse::<Tree>().unwrap())
+            .collect::<Vec<Tree>>();
+
+        assert_eq!(part2(trees), 3993);
+    }
+
+    #[test]
+    fn test_add() {
         let trees = vec![
             Tree::from("[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]"),
             Tree::from("[7,[[[3,7],[4,3]],[[6,3],[8,8]]]]"),
@@ -327,11 +308,8 @@ mod tests {
             Tree::from("[[[[4,2],2],6],[8,7]]"),
         ];
 
-        let sum = trees[1..]
-            .iter()
-            .fold(trees[0].clone(), |t, next| t.add(next.clone()));
         assert_eq!(
-            sum,
+            trees.into_iter().reduce(|t1, t2| t1.add(t2)).unwrap(),
             Tree::from("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]")
         );
     }
@@ -380,5 +358,27 @@ mod tests {
     fn test_magnitude() {
         assert_eq!(Tree::of((9, 1)).magnitude(), 29);
         assert_eq!(Tree::of(((9, 1), (1, 9))).magnitude(), 129);
+    }
+
+    #[bench]
+    fn bench_part1(b: &mut Bencher) {
+        let input = std::fs::read_to_string("input/d18.txt")
+            .expect("file not found")
+            .lines()
+            .map(|line| line.parse::<Tree>().unwrap())
+            .collect::<Vec<_>>();
+
+        b.iter(|| assert_eq!(part1(input.clone()), 3987));
+    }
+
+    #[bench]
+    fn bench_part2(b: &mut Bencher) {
+        let input = std::fs::read_to_string("input/d18.txt")
+            .expect("file not found")
+            .lines()
+            .map(|line| line.parse::<Tree>().unwrap())
+            .collect::<Vec<_>>();
+
+        b.iter(|| assert_eq!(part2(input.clone()), 4500));
     }
 }
