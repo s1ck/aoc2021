@@ -127,17 +127,11 @@ impl Tree {
     fn split(&mut self) -> bool {
         match self {
             Tree::Reg(v) if *v > 9 => {
-                *self = Tree::Pair(Box::new((Tree::Reg(*v / 2), Tree::Reg((*v + 1) / 2))));
+                *self = Self::of((*v / 2, (*v + 1) / 2));
                 true
             }
-            Tree::Pair(pair) => {
-                let lhs_split = pair.0.split();
-
-                let rhs_split = if !lhs_split { pair.1.split() } else { false };
-
-                lhs_split || rhs_split
-            }
-            _ => false,
+            Tree::Reg(_) => false,
+            Tree::Pair(pair) => pair.0.split() || pair.1.split(),
         }
     }
 }
