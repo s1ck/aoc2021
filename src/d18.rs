@@ -29,7 +29,7 @@ fn part2(trees: Vec<Tree>) -> usize {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Tree {
     Reg(u8),
-    Pair(Box<Tree>, Box<Tree>),
+    Pair(Box<(Tree, Tree)>),
 }
 
 #[derive(Clone, Copy)]
@@ -42,7 +42,7 @@ impl std::fmt::Display for Tree {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Reg(v) => write!(f, "{}", v),
-            Self::Pair(lhs, rhs) => write!(f, "[{},{}]", lhs, rhs),
+            Self::Pair(pair) => write!(f, "[{},{}]", pair.0, pair.1),
         }
     }
 }
@@ -59,12 +59,12 @@ impl Tree {
     fn magnitude(self) -> u32 {
         match self {
             Self::Reg(v) => v as u32,
-            Self::Pair(lhs, rhs) => 3 * lhs.magnitude() + 2 * rhs.magnitude(),
+            Self::Pair(pair) => 3 * pair.0.magnitude() + 2 * pair.1.magnitude(),
         }
     }
 
     fn reduce(self, other: Tree) -> Self {
-        let mut tree = Self::Pair(Box::new(self), Box::new(other));
+        let mut tree = Self::Pair(Box::new((self, other)));
 
         loop {
             let (next, explode) = tree.explode(0);
@@ -87,95 +87,74 @@ impl Tree {
     fn insert(&self, value: u8, d: Direction) -> Self {
         match (self, d) {
             (Tree::Reg(v), _) => Tree::Reg(v + value),
-            (Tree::Pair(lhs, rhs), Direction::Left) => {
-                Tree::Pair(Box::new(lhs.insert(value, d)), Box::new(*rhs.clone()))
+            (Tree::Pair(pair), Direction::Left) => {
+                Tree::Pair(Box::new((pair.0.insert(value, d), pair.1.clone())))
             }
-            (Tree::Pair(lhs, rhs), Direction::Right) => {
-                Tree::Pair(Box::new(*lhs.clone()), Box::new(rhs.insert(value, d)))
+            (Tree::Pair(pair), Direction::Right) => {
+                Tree::Pair(Box::new((pair.0.clone(), pair.1.insert(value, d))))
             }
         }
     }
 
     fn explode(&self, depth: u8) -> (Self, Option<(Option<u8>, Option<u8>)>) {
         match self {
-            Tree::Pair(left, right) if depth == 4 => {
-                let l = match **left {
-                    Tree::Reg(l) => l,
-                    _ => unreachable!(),
-                };
-
-                let r = match **right {
-                    Tree::Reg(r) => r,
-                    _ => unreachable!(),
-                };
-
-                (Tree::Reg(0), Some((Some(l), Some(r))))
-            }
-            Tree::Pair(lhs, rhs) => {
-                let (new_lhs, exploded) = lhs.explode(depth + 1);
+            Tree::Pair(pair) if depth == 4 => match (&pair.0, &pair.1) {
+                (&Tree::Reg(l), &Tree::Reg(r)) => (Tree::Reg(0), Some((Some(l), Some(r)))),
+                _ => unreachable!(),
+            },
+            Tree::Pair(pair) => {
+                let (new_lhs, exploded) = pair.0.explode(depth + 1);
 
                 if let Some((left, right)) = exploded {
                     if let Some(r) = right {
                         return (
-                            Tree::Pair(Box::new(new_lhs), Box::new(rhs.insert(r, Direction::Left))),
+                            Tree::Pair(Box::new((new_lhs, pair.1.insert(r, Direction::Left)))),
                             Some((left, None)),
                         );
                     }
                     return (
-                        Tree::Pair(Box::new(new_lhs), Box::new(*rhs.clone())),
+                        Tree::Pair(Box::new((new_lhs, pair.1.clone()))),
                         Some((left, None)),
                     );
                 } else {
-                    let (new_rhs, exploded) = rhs.explode(depth + 1);
+                    let (new_rhs, exploded) = pair.1.explode(depth + 1);
 
                     if let Some((left, right)) = exploded {
                         if let Some(l) = left {
                             return (
-                                Tree::Pair(
-                                    Box::new(lhs.insert(l, Direction::Right)),
-                                    Box::new(new_rhs),
-                                ),
+                                Tree::Pair(Box::new((pair.0.insert(l, Direction::Right), new_rhs))),
                                 Some((None, right)),
                             );
                         }
                         return (
-                            Tree::Pair(Box::new(*lhs.clone()), Box::new(new_rhs)),
+                            Tree::Pair(Box::new((pair.0.clone(), new_rhs))),
                             Some((None, right)),
                         );
                     }
                 }
 
-                (
-                    Tree::Pair(Box::new(*lhs.clone()), Box::new(*rhs.clone())),
-                    None,
-                )
+                (Tree::Pair(Box::new((pair.0.clone(), pair.1.clone()))), None)
             }
-            _ => (self.clone(), None),
+            reg => (reg.clone(), None),
         }
     }
 
     fn split(&self) -> (Self, bool) {
         match self {
             Tree::Reg(v) if *v > 9 => (
-                Tree::Pair(
-                    Box::new(Tree::Reg(*v / 2)),
-                    Box::new(Tree::Reg((*v + 1) / 2)),
-                ),
+                Tree::Pair(Box::new((Tree::Reg(*v / 2), Tree::Reg((*v + 1) / 2)))),
                 true,
             ),
-            Tree::Pair(lhs, rhs) => {
-                let (lhs, lhs_split) = lhs.split();
+            Tree::Pair(pair) => {
+                let (lhs, lhs_split) = pair.0.split();
 
                 let (rhs, rhs_split) = if !lhs_split {
-                    rhs.split()
+                    pair.1.split()
                 } else {
-                    (*rhs.clone(), false)
+                    (pair.1.clone(), false)
                 };
 
-                (
-                    Tree::Pair(Box::new(lhs), Box::new(rhs)),
-                    lhs_split || rhs_split,
-                )
+                (Tree::Pair(Box::new((lhs, rhs))), lhs_split || rhs_split)
             }
             _ => (self.clone(), false),
         }
@@ -190,7 +169,7 @@ impl From<u8> for Tree {
 
 impl<T: Into<Self>, U: Into<Self>> From<(T, U)> for Tree {
     fn from((left, right): (T, U)) -> Self {
-        Self::Pair(Box::new(left.into()), Box::new(right.into()))
+        Self::Pair(Box::new((left.into(), right.into())))
     }
 }
 
@@ -208,7 +187,7 @@ fn parse(bytes: &[u8]) -> (Tree, &[u8]) {
         b'[' => {
             let (lhs, rem) = parse(&bytes[1..]);
             let (rhs, rem) = parse(&rem[1..]); // skip comma
-            (Tree::Pair(Box::new(lhs), Box::new(rhs)), &rem[1..]) // skip ]
+            (Tree::Pair(Box::new((lhs, rhs))), &rem[1..]) // skip ]
         }
         b'0'..=b'9' => (Tree::Reg(bytes[0] - b'0'), &bytes[1..]),
         c => panic!("unexpected: '{}'", c),
