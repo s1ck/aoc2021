@@ -7,7 +7,11 @@ pub fn run(trees: Vec<Tree>) -> (usize, usize) {
 fn part1(trees: Vec<Tree>) -> usize {
     trees
         .into_iter()
-        .reduce(|t1, t2| t1.reduce(t2))
+        .reduce(|mut t1, t2| {
+            t1.add(t2);
+            t1.reduce();
+            t1
+        })
         .unwrap()
         .magnitude() as usize
 }
@@ -18,7 +22,13 @@ fn part2(trees: Vec<Tree>) -> usize {
         .map(|left| {
             trees
                 .iter()
-                .map(|right| left.clone().reduce(right.clone()).magnitude())
+                .cloned()
+                .map(|right| {
+                    let mut l = left.clone();
+                    l.add(right);
+                    l.reduce();
+                    l.magnitude()
+                })
                 .max()
                 .unwrap()
         })
@@ -63,77 +73,50 @@ impl Tree {
         }
     }
 
-    fn reduce(self, other: Tree) -> Self {
-        let mut tree = Self::Pair(Box::new((self, other)));
-
-        loop {
-            let (mut next, explode) = tree.explode(0);
-
-            if explode.is_some() {
-                tree = next;
-                continue;
-            }
-
-            if !next.split() {
-                return next;
-            }
-
-            tree = next;
-        }
+    fn add(&mut self, other: Self) {
+        let lhs = std::mem::replace(self, Self::of(0));
+        let num = Self::of((lhs, other));
+        *self = num;
     }
 
-    fn insert(&self, value: u8, d: Direction) -> Self {
+    fn reduce(&mut self) {
+        while self.explode(0).is_some() || self.split() {}
+    }
+
+    fn insert(&mut self, value: u8, d: Direction) {
         match (self, d) {
-            (Tree::Reg(v), _) => Tree::Reg(v + value),
-            (Tree::Pair(pair), Direction::Left) => {
-                Tree::Pair(Box::new((pair.0.insert(value, d), pair.1.clone())))
-            }
-            (Tree::Pair(pair), Direction::Right) => {
-                Tree::Pair(Box::new((pair.0.clone(), pair.1.insert(value, d))))
-            }
+            (Tree::Reg(v), _) => *v += value,
+            (Tree::Pair(pair), Direction::Left) => pair.0.insert(value, d),
+            (Tree::Pair(pair), Direction::Right) => pair.1.insert(value, d),
         }
     }
 
-    fn explode(&self, depth: u8) -> (Self, Option<(Option<u8>, Option<u8>)>) {
+    fn explode(&mut self, depth: u8) -> Option<(Option<u8>, Option<u8>)> {
         match self {
             Tree::Pair(pair) if depth == 4 => match (&pair.0, &pair.1) {
-                (&Tree::Reg(l), &Tree::Reg(r)) => (Tree::Reg(0), Some((Some(l), Some(r)))),
+                (&Tree::Reg(l), &Tree::Reg(r)) => {
+                    *self = Tree::Reg(0);
+                    Some((Some(l), Some(r)))
+                }
                 _ => unreachable!(),
             },
             Tree::Pair(pair) => {
-                let (new_lhs, exploded) = pair.0.explode(depth + 1);
-
-                if let Some((left, right)) = exploded {
+                if let Some((left, right)) = pair.0.explode(depth + 1) {
                     if let Some(r) = right {
-                        return (
-                            Tree::Pair(Box::new((new_lhs, pair.1.insert(r, Direction::Left)))),
-                            Some((left, None)),
-                        );
+                        pair.1.insert(r, Direction::Left);
+                        return Some((left, None));
                     }
-                    return (
-                        Tree::Pair(Box::new((new_lhs, pair.1.clone()))),
-                        Some((left, None)),
-                    );
-                } else {
-                    let (new_rhs, exploded) = pair.1.explode(depth + 1);
-
-                    if let Some((left, right)) = exploded {
-                        if let Some(l) = left {
-                            return (
-                                Tree::Pair(Box::new((pair.0.insert(l, Direction::Right), new_rhs))),
-                                Some((None, right)),
-                            );
-                        }
-                        return (
-                            Tree::Pair(Box::new((pair.0.clone(), new_rhs))),
-                            Some((None, right)),
-                        );
+                    return Some((left, None));
+                } else if let Some((left, right)) = pair.1.explode(depth + 1) {
+                    if let Some(l) = left {
+                        pair.0.insert(l, Direction::Right);
+                        return Some((None, right));
                     }
+                    return Some((None, right));
                 }
-
-                (Tree::Pair(Box::new((pair.0.clone(), pair.1.clone()))), None)
+                None
             }
-            reg => (reg.clone(), None),
+            _ => None,
         }
     }
 
@@ -266,8 +249,11 @@ mod tests {
 
         assert_eq!(
             input
-                .iter()
-                .map(|tree| tree.explode(0).0)
+                .into_iter()
+                .map(|mut tree| {
+                    tree.explode(0);
+                    tree
+                })
                 .collect::<Vec<_>>(),
             expected
         );
@@ -321,7 +307,14 @@ mod tests {
         ];
 
         assert_eq!(
-            trees.into_iter().reduce(|t1, t2| t1.reduce(t2)).unwrap(),
+            trees
+                .into_iter()
+                .reduce(|mut t1, t2| {
+                    t1.add(t2.clone());
+                    t1.reduce();
+                    t1
+                })
+                .unwrap(),
             Tree::from("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]")
         );
     }
