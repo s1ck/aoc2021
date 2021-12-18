@@ -7,7 +7,7 @@ pub fn run(trees: Vec<Tree>) -> (usize, usize) {
 fn part1(trees: Vec<Tree>) -> usize {
     trees
         .into_iter()
-        .reduce(|t1, t2| t1.add(t2))
+        .reduce(|t1, t2| t1.reduce(t2))
         .unwrap()
         .magnitude() as usize
 }
@@ -18,7 +18,7 @@ fn part2(trees: Vec<Tree>) -> usize {
         .map(|left| {
             trees
                 .iter()
-                .map(|right| left.clone().add(right.clone()).magnitude())
+                .map(|right| left.clone().reduce(right.clone()).magnitude())
                 .max()
                 .unwrap()
         })
@@ -30,6 +30,12 @@ fn part2(trees: Vec<Tree>) -> usize {
 pub enum Tree {
     Reg(u8),
     Pair(Box<Tree>, Box<Tree>),
+}
+
+#[derive(Clone, Copy)]
+enum Direction {
+    Left,
+    Right,
 }
 
 impl std::fmt::Display for Tree {
@@ -57,18 +63,18 @@ impl Tree {
         }
     }
 
-    fn add(self, other: Tree) -> Self {
+    fn reduce(self, other: Tree) -> Self {
         let mut tree = Self::Pair(Box::new(self), Box::new(other));
 
         loop {
-            let (next, _, did_explode) = Tree::explode_inner(&tree, 0);
+            let (next, explode) = tree.explode(0);
 
-            if did_explode {
+            if explode.is_some() {
                 tree = next;
                 continue;
             }
 
-            let (next, did_split) = next.split_inner();
+            let (next, did_split) = next.split();
 
             if !did_split {
                 return next;
@@ -78,122 +84,100 @@ impl Tree {
         }
     }
 
-    fn insert_left(&self, value: u8) -> Self {
-        match self {
-            Tree::Reg(v) => Tree::Reg(v + value),
-            Tree::Pair(lhs, rhs) => {
-                Tree::Pair(Box::new(lhs.insert_left(value)), Box::new(*rhs.clone()))
+    fn insert(&self, value: u8, d: Direction) -> Self {
+        match (self, d) {
+            (Tree::Reg(v), _) => Tree::Reg(v + value),
+            (Tree::Pair(lhs, rhs), Direction::Left) => {
+                Tree::Pair(Box::new(lhs.insert(value, d)), Box::new(*rhs.clone()))
+            }
+            (Tree::Pair(lhs, rhs), Direction::Right) => {
+                Tree::Pair(Box::new(*lhs.clone()), Box::new(rhs.insert(value, d)))
             }
         }
     }
 
-    fn insert_right(&self, value: u8) -> Self {
+    fn explode(&self, depth: u8) -> (Self, Option<(Option<u8>, Option<u8>)>) {
         match self {
-            Tree::Reg(v) => Tree::Reg(v + value),
-            Tree::Pair(lhs, rhs) => {
-                Tree::Pair(Box::new(*lhs.clone()), Box::new(rhs.insert_right(value)))
+            Tree::Pair(left, right) if depth == 4 => {
+                let l = match **left {
+                    Tree::Reg(l) => l,
+                    _ => unreachable!(),
+                };
+
+                let r = match **right {
+                    Tree::Reg(r) => r,
+                    _ => unreachable!(),
+                };
+
+                (Tree::Reg(0), Some((Some(l), Some(r))))
             }
-        }
-    }
+            Tree::Pair(lhs, rhs) => {
+                let (new_lhs, exploded) = lhs.explode(depth + 1);
 
-    fn explode(&self) -> Self {
-        Tree::explode_inner(self, 0).0
-    }
-
-    fn explode_inner(t: &Tree, depth: usize) -> (Tree, Option<(Option<u8>, Option<u8>)>, bool) {
-        if depth < 4 {
-            match t {
-                Tree::Pair(lhs, rhs) => {
-                    let (new_lhs, exploded, did_explode) = Tree::explode_inner(lhs, depth + 1);
+                if let Some((left, right)) = exploded {
+                    if let Some(r) = right {
+                        return (
+                            Tree::Pair(Box::new(new_lhs), Box::new(rhs.insert(r, Direction::Left))),
+                            Some((left, None)),
+                        );
+                    }
+                    return (
+                        Tree::Pair(Box::new(new_lhs), Box::new(*rhs.clone())),
+                        Some((left, None)),
+                    );
+                } else {
+                    let (new_rhs, exploded) = rhs.explode(depth + 1);
 
                     if let Some((left, right)) = exploded {
-                        if let Some(r) = right {
+                        if let Some(l) = left {
                             return (
-                                Tree::Pair(Box::new(new_lhs), Box::new(rhs.insert_left(r))),
-                                Some((left, None)),
-                                did_explode,
+                                Tree::Pair(
+                                    Box::new(lhs.insert(l, Direction::Right)),
+                                    Box::new(new_rhs),
+                                ),
+                                Some((None, right)),
                             );
                         }
                         return (
-                            Tree::Pair(Box::new(new_lhs), Box::new(*rhs.clone())),
-                            Some((left, None)), // parent needs to handle lhs
-                            did_explode,
+                            Tree::Pair(Box::new(*lhs.clone()), Box::new(new_rhs)),
+                            Some((None, right)),
                         );
-                    } else {
-                        let (new_rhs, exploded, did_explode) = Tree::explode_inner(rhs, depth + 1);
-
-                        if let Some((left, right)) = exploded {
-                            if let Some(l) = left {
-                                return (
-                                    Tree::Pair(Box::new(lhs.insert_right(l)), Box::new(new_rhs)),
-                                    Some((None, right)),
-                                    did_explode,
-                                );
-                            }
-                            return (
-                                Tree::Pair(Box::new(*lhs.clone()), Box::new(new_rhs)),
-                                Some((None, right)),
-                                did_explode,
-                            );
-                        }
                     }
-
-                    (
-                        Tree::Pair(Box::new(*lhs.clone()), Box::new(*rhs.clone())),
-                        None,
-                        false,
-                    )
                 }
-                _ => (t.clone(), None, false),
-            }
-        } else {
-            match t {
-                Tree::Pair(left, right) => {
-                    let l = match **left {
-                        Tree::Reg(l) => l,
-                        _ => unreachable!(),
-                    };
 
-                    let r = match **right {
-                        Tree::Reg(r) => r,
-                        _ => unreachable!(),
-                    };
-
-                    (Tree::Reg(0), Some((Some(l), Some(r))), true)
-                }
-                reg => (reg.clone(), None, false),
+                (
+                    Tree::Pair(Box::new(*lhs.clone()), Box::new(*rhs.clone())),
+                    None,
+                )
             }
+            _ => (self.clone(), None),
         }
     }
 
-    fn split(&self) -> Self {
-        self.split_inner().0
-    }
-
-    fn split_inner(&self) -> (Self, bool) {
+    fn split(&self) -> (Self, bool) {
         match self {
             Tree::Reg(v) if *v > 9 => (
                 Tree::Pair(
-                    Box::new(Tree::Reg(f32::floor(*v as f32 / 2.0) as u8)),
-                    Box::new(Tree::Reg(f32::ceil(*v as f32 / 2.0) as u8)),
+                    Box::new(Tree::Reg(*v / 2)),
+                    Box::new(Tree::Reg((*v + 1) / 2)),
                 ),
                 true,
             ),
-            Tree::Reg(_) => (self.clone(), false),
             Tree::Pair(lhs, rhs) => {
-                let (lhs, did_lhs_split) = lhs.split_inner();
+                let (lhs, lhs_split) = lhs.split();
 
-                let (rhs, did_rhs_split) = if !did_lhs_split {
-                    rhs.split_inner()
+                let (rhs, rhs_split) = if !lhs_split {
+                    rhs.split()
                 } else {
                     (*rhs.clone(), false)
                 };
 
                 (
                     Tree::Pair(Box::new(lhs), Box::new(rhs)),
-                    did_lhs_split || did_rhs_split,
+                    lhs_split || rhs_split,
                 )
             }
+            _ => (self.clone(), false),
         }
     }
 }
@@ -294,27 +278,6 @@ mod tests {
     }
 
     #[test]
-    fn test_add() {
-        let trees = vec![
-            Tree::from("[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]"),
-            Tree::from("[7,[[[3,7],[4,3]],[[6,3],[8,8]]]]"),
-            Tree::from("[[2,[[0,8],[3,4]]],[[[6,7],1],[7,[1,6]]]]"),
-            Tree::from("[[[[2,4],7],[6,[0,5]]],[[[6,8],[2,8]],[[2,1],[4,5]]]]"),
-            Tree::from("[7,[5,[[3,8],[1,4]]]]"),
-            Tree::from("[[2,[2,2]],[8,[8,1]]]"),
-            Tree::from("[2,9]"),
-            Tree::from("[1,[[[9,3],9],[[9,0],[0,7]]]]"),
-            Tree::from("[[[5,[7,4]],7],1]"),
-            Tree::from("[[[[4,2],2],6],[8,7]]"),
-        ];
-
-        assert_eq!(
-            trees.into_iter().reduce(|t1, t2| t1.add(t2)).unwrap(),
-            Tree::from("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]")
-        );
-    }
-
-    #[test]
     fn test_explode() {
         let input = vec![
             Tree::of((((((9, 8), 1), 2), 3), 4)),
@@ -329,7 +292,10 @@ mod tests {
         ];
 
         assert_eq!(
-            input.iter().map(|tree| tree.explode()).collect::<Vec<_>>(),
+            input
+                .iter()
+                .map(|tree| tree.explode(0).0)
+                .collect::<Vec<_>>(),
             expected
         );
     }
@@ -349,7 +315,7 @@ mod tests {
         ];
 
         assert_eq!(
-            actual.iter().map(|tree| tree.split()).collect::<Vec<_>>(),
+            actual.iter().map(|tree| tree.split().0).collect::<Vec<_>>(),
             expected
         )
     }
@@ -358,6 +324,27 @@ mod tests {
     fn test_magnitude() {
         assert_eq!(Tree::of((9, 1)).magnitude(), 29);
         assert_eq!(Tree::of(((9, 1), (1, 9))).magnitude(), 129);
+    }
+
+    #[test]
+    fn test_reduce() {
+        let trees = vec![
+            Tree::from("[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]"),
+            Tree::from("[7,[[[3,7],[4,3]],[[6,3],[8,8]]]]"),
+            Tree::from("[[2,[[0,8],[3,4]]],[[[6,7],1],[7,[1,6]]]]"),
+            Tree::from("[[[[2,4],7],[6,[0,5]]],[[[6,8],[2,8]],[[2,1],[4,5]]]]"),
+            Tree::from("[7,[5,[[3,8],[1,4]]]]"),
+            Tree::from("[[2,[2,2]],[8,[8,1]]]"),
+            Tree::from("[2,9]"),
+            Tree::from("[1,[[[9,3],9],[[9,0],[0,7]]]]"),
+            Tree::from("[[[5,[7,4]],7],1]"),
+            Tree::from("[[[[4,2],2],6],[8,7]]"),
+        ];
+
+        assert_eq!(
+            trees.into_iter().reduce(|t1, t2| t1.reduce(t2)).unwrap(),
+            Tree::from("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]")
+        );
     }
 
     #[bench]
