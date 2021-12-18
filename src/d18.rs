@@ -56,9 +56,9 @@ impl Tree {
         s.parse::<Self>().unwrap()
     }
 
-    fn magnitude(self) -> u32 {
+    fn magnitude(&self) -> u32 {
         match self {
-            Self::Reg(v) => v as u32,
+            Self::Reg(v) => *v as u32,
             Self::Pair(pair) => 3 * pair.0.magnitude() + 2 * pair.1.magnitude(),
         }
     }
