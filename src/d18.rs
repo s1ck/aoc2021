@@ -80,7 +80,7 @@ impl Tree {
     }
 
     fn reduce(&mut self) {
-        while self.explode(0).is_some() || self.split() {}
+        while self.explode() || self.split() {}
     }
 
     fn insert(&mut self, value: u8, d: Direction) {
@@ -91,32 +91,36 @@ impl Tree {
         }
     }
 
-    fn explode(&mut self, depth: u8) -> Option<(Option<u8>, Option<u8>)> {
-        match self {
-            Tree::Pair(pair) if depth == 4 => match (&pair.0, &pair.1) {
-                (&Tree::Reg(l), &Tree::Reg(r)) => {
-                    *self = Tree::Reg(0);
-                    Some((Some(l), Some(r)))
-                }
-                _ => unreachable!(),
-            },
-            Tree::Pair(pair) => {
-                if let Some((left, right)) = pair.0.explode(depth + 1) {
-                    if let Some(r) = right {
-                        pair.1.insert(r, Direction::Left);
-                        return Some((left, None));
+    fn explode(&mut self) -> bool {
+        return explode(self, 0).is_some();
+
+        fn explode(tree: &mut Tree, depth: u8) -> Option<(Option<u8>, Option<u8>)> {
+            match tree {
+                Tree::Pair(pair) if depth == 4 => match (&pair.0, &pair.1) {
+                    (&Tree::Reg(l), &Tree::Reg(r)) => {
+                        *tree = Tree::Reg(0);
+                        Some((Some(l), Some(r)))
                     }
-                    return Some((left, None));
-                } else if let Some((left, right)) = pair.1.explode(depth + 1) {
-                    if let Some(l) = left {
-                        pair.0.insert(l, Direction::Right);
+                    _ => unreachable!(),
+                },
+                Tree::Pair(pair) => {
+                    if let Some((left, right)) = explode(&mut pair.0, depth + 1) {
+                        if let Some(r) = right {
+                            pair.1.insert(r, Direction::Left);
+                            return Some((left, None));
+                        }
+                        return Some((left, None));
+                    } else if let Some((left, right)) = explode(&mut pair.1, depth + 1) {
+                        if let Some(l) = left {
+                            pair.0.insert(l, Direction::Right);
+                            return Some((None, right));
+                        }
                         return Some((None, right));
                     }
-                    return Some((None, right));
+                    None
                 }
-                None
+                _ => None,
             }
-            _ => None,
         }
     }
 
@@ -251,7 +255,7 @@ mod tests {
             input
                 .into_iter()
                 .map(|mut tree| {
-                    tree.explode(0);
+                    tree.explode();
                     tree
                 })
                 .collect::<Vec<_>>(),
