@@ -12,10 +12,10 @@ pub fn run(input: &str) -> (usize, usize) {
         .map(|scanner| scanner.parse::<Scanner>().unwrap())
         .collect::<Vec<_>>();
 
-    (part1(&mut scanners), 0)
+    compute(&mut scanners)
 }
 
-fn part1(scanners: &mut [Scanner]) -> usize {
+fn compute(scanners: &mut [Scanner]) -> (usize, usize) {
     let mut rotations = HashMap::new();
 
     for id_left in 0..scanners.len() {
@@ -57,9 +57,12 @@ fn part1(scanners: &mut [Scanner]) -> usize {
         .build();
 
     let mut beacons = scanners[0].points.iter().copied().collect::<HashSet<_>>();
+    let mut centers = vec![Point::default(); scanners.len()];
 
     for scanner_id in 1..scanners.len() {
         let path = dfs(&g, scanner_id);
+
+        let mut center_base: Option<Point> = None;
 
         for (from, to) in path.iter().rev() {
             let (center, rotation, sign) = rotations.get(&(*from, *to)).unwrap();
@@ -70,14 +73,36 @@ fn part1(scanners: &mut [Scanner]) -> usize {
 
                 *point = translated;
             });
+
+            center_base = if let Some(c) = center_base {
+                let rotated = c.rotate(*rotation, *sign);
+                let translated = *center + rotated;
+                Some(translated)
+            } else {
+                Some(*center)
+            };
         }
+
+        centers[scanner_id] = center_base.unwrap();
 
         scanners[scanner_id].points.iter().for_each(|p| {
             beacons.insert(*p);
         });
     }
 
-    return beacons.len();
+    let max_manhattan_sum = centers
+        .iter()
+        .map(|c1| {
+            centers
+                .iter()
+                .map(|c2| c1.manhattan_distance(c2).sum())
+                .max()
+                .unwrap()
+        })
+        .max()
+        .unwrap();
+
+    return (beacons.len(), max_manhattan_sum as usize);
 
     fn dfs(g: &UndirectedCsrGraph<usize>, end: usize) -> Vec<(usize, usize)> {
         fn dfs_inner(
@@ -268,6 +293,18 @@ impl Point {
 
         center
     }
+
+    fn manhattan_distance(&self, other: &Self) -> Self {
+        Self {
+            x: self.x.abs_diff(other.x) as i32,
+            y: self.y.abs_diff(other.y) as i32,
+            z: self.z.abs_diff(other.z) as i32,
+        }
+    }
+
+    fn sum(&self) -> i32 {
+        self.x + self.y + self.z
+    }
 }
 
 struct Scanner {
@@ -353,27 +390,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_part1_sample() {
+    fn test_compute_sample() {
         let f = std::fs::read_to_string("input/d19-test.txt").expect("file not found");
 
-        let mut scanners = f
-            .split("\n\n")
-            .map(|scanner| scanner.parse::<Scanner>().unwrap())
-            .collect::<Vec<_>>();
+        let (beacons, distance) = run(&f);
 
-        assert_eq!(part1(&mut scanners), 79);
+        assert_eq!(beacons, 79);
+        assert_eq!(distance, 3621);
     }
 
     #[test]
-    fn test_part1() {
+    fn test_compute() {
         let f = std::fs::read_to_string("input/d19.txt").expect("file not found");
 
-        let mut scanners = f
-            .split("\n\n")
-            .map(|scanner| scanner.parse::<Scanner>().unwrap())
-            .collect::<Vec<_>>();
+        let (beacons, distance) = run(&f);
 
-        assert_eq!(part1(&mut scanners), 398);
+        assert_eq!(beacons, 398);
+        assert_eq!(distance, 10965);
     }
 
     #[test]
