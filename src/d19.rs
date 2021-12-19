@@ -128,7 +128,7 @@ fn compute(scanners: &mut [Scanner]) -> (usize, usize) {
                 }
             }
 
-            return false;
+            false
         }
 
         let mut path = vec![];
@@ -285,13 +285,11 @@ impl Point {
             left.z + right.z.abs()
         };
 
-        let center = Point {
+        Point {
             x: c_x,
             y: c_y,
             z: c_z,
-        };
-
-        center
+        }
     }
 
     fn manhattan_distance(&self, other: &Self) -> Self {
@@ -351,7 +349,7 @@ impl Scanner {
                         d[1] = p.y.abs_diff(other.y);
                         d[2] = p.z.abs_diff(other.z);
 
-                        d.sort();
+                        d.sort_unstable();
                         d
                     })
                     .collect::<HashSet<_>>()
@@ -371,7 +369,7 @@ impl Scanner {
                     .iter()
                     .enumerate()
                     .filter_map(|(i_other, p_other)| {
-                        if p_self.intersection(p_other).collect::<Vec<_>>().len() == 11 {
+                        if p_self.intersection(p_other).count() == 11 {
                             Some((self.points[i_self], other.points[i_other]))
                         } else {
                             None
