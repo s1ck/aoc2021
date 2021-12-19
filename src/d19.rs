@@ -7,20 +7,21 @@ use std::{
 use graph::prelude::*;
 
 pub fn run(input: &str) -> (usize, usize) {
-    let mut scanners = input
+    let mut cubes = input
         .split("\n\n")
-        .map(|scanner| scanner.parse::<Scanner>().unwrap())
+        .map(|scanner| scanner.parse::<Cube>().unwrap())
         .collect::<Vec<_>>();
 
-    compute(&mut scanners)
+    compute(&mut cubes)
 }
 
-fn compute(scanners: &mut [Scanner]) -> (usize, usize) {
+fn compute(cubes: &mut [Cube]) -> (usize, usize) {
     let mut rotations = HashMap::new();
 
-    for id_left in 0..scanners.len() {
-        for id_right in (id_left + 1)..scanners.len() {
-            let matches = scanners[id_left].overlap(&scanners[id_right]);
+    // find rotation and translation information for overlapping cubes
+    for id_left in 0..cubes.len() {
+        for id_right in (id_left + 1)..cubes.len() {
+            let matches = cubes[id_left].overlap(&cubes[id_right]);
 
             if !matches.is_empty() {
                 let (diff_left, diff_right) = matches
@@ -30,51 +31,40 @@ fn compute(scanners: &mut [Scanner]) -> (usize, usize) {
                     .unwrap();
 
                 let (rotation, sign) = diff_right.mapping(&diff_left);
-
-                let l = matches[0].0;
-                let r = matches[0].1.rotate(rotation, sign);
-
-                let center = Point::center(&l, &r);
-
-                rotations.insert((id_left, id_right), (center, rotation, sign));
+                let scanner = Vector::center(&matches[0].0, &matches[0].1.rotate(rotation, sign));
+                rotations.insert((id_left, id_right), (scanner, rotation, sign));
 
                 let (rotation, sign) = diff_left.mapping(&diff_right);
-
-                let l = matches[0].1;
-                let r = matches[0].0.rotate(rotation, sign);
-
-                let center = Point::center(&l, &r);
-
-                rotations.insert((id_right, id_left), (center, rotation, sign));
+                let scanner = Vector::center(&matches[0].1, &matches[0].0.rotate(rotation, sign));
+                rotations.insert((id_right, id_left), (scanner, rotation, sign));
             }
         }
     }
 
-    // find transformation paths and transform according to rotations
-
+    // find paths from each cube to cube 0 and transform according to rotations
     let g: UndirectedCsrGraph<usize> = GraphBuilder::new()
         .edges(rotations.keys().copied().collect::<Vec<_>>())
         .build();
 
-    let mut beacons = scanners[0].points.iter().copied().collect::<HashSet<_>>();
-    let mut centers = vec![Point::default(); scanners.len()];
+    let mut beacons = cubes[0].points.iter().copied().collect::<HashSet<_>>();
+    let mut scanners = vec![Vector::default(); cubes.len()];
 
-    for scanner_id in 1..scanners.len() {
-        let path = dfs(&g, scanner_id);
+    for cube_id in 1..cubes.len() {
+        let path = dfs(&g, cube_id);
 
-        let mut center_base: Option<Point> = None;
+        let mut scanner_base: Option<Vector> = None;
 
         for (from, to) in path.iter().rev() {
             let (center, rotation, sign) = rotations.get(&(*from, *to)).unwrap();
 
-            scanners[scanner_id].points.iter_mut().for_each(|point| {
+            cubes[cube_id].points.iter_mut().for_each(|point| {
                 let rotated = point.rotate(*rotation, *sign);
                 let translated = *center + rotated;
 
                 *point = translated;
             });
 
-            center_base = if let Some(c) = center_base {
+            scanner_base = if let Some(c) = scanner_base {
                 let rotated = c.rotate(*rotation, *sign);
                 let translated = *center + rotated;
                 Some(translated)
@@ -83,17 +73,17 @@ fn compute(scanners: &mut [Scanner]) -> (usize, usize) {
             };
         }
 
-        centers[scanner_id] = center_base.unwrap();
+        scanners[cube_id] = scanner_base.unwrap();
 
-        scanners[scanner_id].points.iter().for_each(|p| {
+        cubes[cube_id].points.iter().for_each(|p| {
             beacons.insert(*p);
         });
     }
 
-    let max_manhattan_sum = centers
+    let max_manhattan_sum = scanners
         .iter()
         .map(|c1| {
-            centers
+            scanners
                 .iter()
                 .map(|c2| c1.manhattan_distance(c2).sum())
                 .max()
@@ -127,13 +117,11 @@ fn compute(scanners: &mut [Scanner]) -> (usize, usize) {
                     return true;
                 }
             }
-
             false
         }
 
         let mut path = vec![];
         let mut visited = HashSet::new();
-
         visited.insert(0);
 
         dfs_inner(g, 0, end, &mut path, &mut visited);
@@ -143,13 +131,13 @@ fn compute(scanners: &mut [Scanner]) -> (usize, usize) {
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Copy, Default, Eq, Hash, Ord)]
-struct Point {
+struct Vector {
     x: i32,
     y: i32,
     z: i32,
 }
 
-impl Sub for Point {
+impl Sub for Vector {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -161,7 +149,7 @@ impl Sub for Point {
     }
 }
 
-impl Add for Point {
+impl Add for Vector {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -172,13 +160,13 @@ impl Add for Point {
         }
     }
 }
-impl std::fmt::Display for Point {
+impl std::fmt::Display for Vector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{},{},{}", self.x, self.y, self.z)
     }
 }
 
-impl FromStr for Point {
+impl FromStr for Vector {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -193,7 +181,7 @@ impl FromStr for Point {
     }
 }
 
-impl Point {
+impl Vector {
     fn mapping(&self, other: &Self) -> ([usize; 3], [i8; 3]) {
         let mut rotation = [0; 3];
         let mut sign = [1; 3];
@@ -285,7 +273,7 @@ impl Point {
             left.z + right.z.abs()
         };
 
-        Point {
+        Vector {
             x: c_x,
             y: c_y,
             z: c_z,
@@ -305,12 +293,12 @@ impl Point {
     }
 }
 
-struct Scanner {
+struct Cube {
     id: u32,
-    points: Vec<Point>,
+    points: Vec<Vector>,
 }
 
-impl std::fmt::Display for Scanner {
+impl std::fmt::Display for Cube {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Scanner: {}", self.id)?;
         self.points.iter().try_for_each(|p| writeln!(f, "{}", p))?;
@@ -318,7 +306,7 @@ impl std::fmt::Display for Scanner {
     }
 }
 
-impl FromStr for Scanner {
+impl FromStr for Cube {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -327,14 +315,14 @@ impl FromStr for Scanner {
         let points = lines
             .iter()
             .skip(1)
-            .map(|line| line.parse::<Point>().unwrap())
+            .map(|line| line.parse::<Vector>().unwrap())
             .collect::<Vec<_>>();
 
         Ok(Self { id, points })
     }
 }
 
-impl Scanner {
+impl Cube {
     fn distances(&self) -> Vec<HashSet<[u32; 3]>> {
         self.points
             .iter()
@@ -357,7 +345,7 @@ impl Scanner {
             .collect::<Vec<_>>()
     }
 
-    fn overlap(&self, other: &Self) -> Vec<(Point, Point)> {
+    fn overlap(&self, other: &Self) -> Vec<(Vector, Vector)> {
         let d_self = self.distances();
         let d_other = other.distances();
 
@@ -413,7 +401,7 @@ mod tests {
                          42,84,42
                          50,90,60
                          55,-10,-42"
-            .parse::<Scanner>()
+            .parse::<Cube>()
             .unwrap()
             .distances();
 
@@ -446,7 +434,7 @@ mod tests {
     fn test_overlap() {
         let scanners = INPUT
             .split("\n\n")
-            .map(|s| s.parse::<Scanner>().unwrap())
+            .map(|s| s.parse::<Cube>().unwrap())
             .collect::<Vec<_>>();
 
         let overlap = scanners[0].overlap(&scanners[1]);
