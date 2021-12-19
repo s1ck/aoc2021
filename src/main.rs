@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![feature(array_windows)]
 #![feature(test)]
+#![feature(int_abs_diff)]
 
 extern crate test;
 
@@ -25,6 +26,7 @@ mod d15;
 mod d16;
 mod d17;
 mod d18;
+mod d19;
 
 fn main() {
     let day = std::env::args()
@@ -101,6 +103,11 @@ fn main() {
                 .as_str(),
         ),
         18 => d18::run(read_file("input/d18.txt")),
+        19 => d19::run(
+            std::fs::read_to_string("input/d19.txt")
+                .expect("file not found")
+                .as_str(),
+        ),
         _ => panic!("invalid input"),
     };
 
