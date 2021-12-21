@@ -28,6 +28,7 @@ mod d17;
 mod d18;
 mod d19;
 mod d20;
+mod d21;
 
 fn main() {
     let day = std::env::args()
@@ -114,6 +115,7 @@ fn main() {
                 .expect("file not found")
                 .as_str(),
         ),
+        21 => d21::run(read_file("input/d21.txt")),
         _ => panic!("invalid input"),
     };
 
