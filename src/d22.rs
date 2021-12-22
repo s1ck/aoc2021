@@ -1,7 +1,7 @@
-use std::{collections::HashSet, fmt::Display, num::ParseIntError, str::FromStr};
+use std::{collections::HashSet, fmt::Display, num::ParseIntError, ops::Sub, str::FromStr};
 
 pub fn run(cuboids: Vec<Cuboid>) -> (usize, usize) {
-    (part1(&cuboids), 0)
+    (part1(&cuboids), part2(&cuboids))
 }
 
 fn part1(cuboids: &[Cuboid]) -> usize {
@@ -9,7 +9,7 @@ fn part1(cuboids: &[Cuboid]) -> usize {
 
     cuboids
         .iter()
-        .filter(|c| c.is_within(-50, 50))
+        .filter(|c| c.is_within(Range::new(-50, 50)))
         .for_each(|c| {
             for x in c.x.from..=c.x.to {
                 for y in c.y.from..=c.y.to {
@@ -27,10 +27,45 @@ fn part1(cuboids: &[Cuboid]) -> usize {
     coords.len()
 }
 
-#[derive(Debug)]
+fn part2(cuboids: &[Cuboid]) -> usize {
+    let mut clippings: Vec<Cuboid> = Vec::with_capacity(cuboids.len());
+
+    cuboids.iter().for_each(|c| {
+        if c.state {
+            let mut local_clippings = vec![*c];
+
+            clippings.iter().for_each(|clipping| {
+                local_clippings = local_clippings
+                    .iter()
+                    .flat_map(|local_clipping| *local_clipping - *clipping)
+                    .collect::<Vec<_>>();
+            });
+
+            clippings.extend(local_clippings);
+        } else {
+            clippings = clippings
+                .iter()
+                .flat_map(|clipping| *clipping - *c)
+                .collect::<Vec<_>>();
+        }
+    });
+
+    clippings
+        .iter()
+        .map(|clipping| clipping.volume() as usize)
+        .sum()
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Range {
     from: i32,
     to: i32,
+}
+
+impl From<(i32, i32)> for Range {
+    fn from((from, to): (i32, i32)) -> Self {
+        Self { from, to }
+    }
 }
 
 impl FromStr for Range {
@@ -53,12 +88,31 @@ impl Display for Range {
 }
 
 impl Range {
-    fn is_within(&self, from: i32, to: i32) -> bool {
-        self.from >= from && self.to <= to
+    fn new(from: i32, to: i32) -> Self {
+        Self { from, to }
+    }
+
+    fn len(&self) -> usize {
+        self.to.abs_diff(self.from) as usize + 1
     }
 }
 
-#[derive(Debug)]
+impl std::ops::BitAnd for Range {
+    type Output = Option<Self>;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        if self.to < rhs.from || self.from > rhs.to {
+            return None;
+        }
+
+        Some(Self {
+            from: self.from.max(rhs.from),
+            to: self.to.min(rhs.to),
+        })
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Cuboid {
     state: bool,
     x: Range,
@@ -92,8 +146,93 @@ impl Display for Cuboid {
 }
 
 impl Cuboid {
-    fn is_within(&self, from: i32, to: i32) -> bool {
-        self.x.is_within(from, to) && self.y.is_within(from, to) && self.z.is_within(from, to)
+    fn new<T: Into<Range>>(state: bool, x: T, y: T, z: T) -> Self {
+        Self {
+            state,
+            x: x.into(),
+            y: y.into(),
+            z: z.into(),
+        }
+    }
+
+    fn is_within(&self, range: Range) -> bool {
+        (self.x & range).is_some() && (self.y & range).is_some() && (self.z & range).is_some()
+    }
+
+    fn volume(&self) -> usize {
+        self.x.len() * self.y.len() * self.z.len()
+    }
+}
+
+impl Sub for Cuboid {
+    type Output = Vec<Self>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let x_intersect = self.x & rhs.x;
+        let y_intersect = self.y & rhs.y;
+        let z_intersect = self.z & rhs.z;
+
+        // println!("x_intersect = {:?}", x_intersect);
+        // println!("y_intersect = {:?}", y_intersect);
+        // println!("z_intersect = {:?}", z_intersect);
+
+        match (x_intersect, y_intersect, z_intersect) {
+            (Some(x_intersect), Some(y_intersect), Some(z_intersect)) => {
+                let mut clippings = vec![];
+
+                if self.x.from < x_intersect.from {
+                    clippings.push(Cuboid::new(
+                        self.state,
+                        Range::new(self.x.from, x_intersect.from - 1),
+                        self.y,
+                        self.z,
+                    ));
+                }
+                if self.x.to > x_intersect.to {
+                    clippings.push(Cuboid::new(
+                        self.state,
+                        Range::new(x_intersect.to + 1, self.x.to),
+                        self.y,
+                        self.z,
+                    ));
+                }
+                if self.y.from < y_intersect.from {
+                    clippings.push(Cuboid::new(
+                        self.state,
+                        x_intersect,
+                        Range::new(self.y.from, y_intersect.from - 1),
+                        self.z,
+                    ));
+                }
+                if self.y.to > y_intersect.to {
+                    clippings.push(Cuboid::new(
+                        self.state,
+                        x_intersect,
+                        Range::new(y_intersect.to + 1, self.y.to),
+                        self.z,
+                    ));
+                }
+                if self.z.from < z_intersect.from {
+                    clippings.push(Cuboid::new(
+                        self.state,
+                        x_intersect,
+                        y_intersect,
+                        Range::new(self.z.from, z_intersect.from - 1),
+                    ));
+                }
+                if self.z.to > z_intersect.to {
+                    clippings.push(Cuboid::new(
+                        self.state,
+                        x_intersect,
+                        y_intersect,
+                        Range::new(z_intersect.to + 1, self.z.to),
+                    ));
+                }
+
+                clippings
+            }
+            _ => vec![self],
+        }
     }
 }
 
@@ -145,5 +284,74 @@ mod tests {
     fn test_part1() {
         assert_eq!(part1(&parse(SMALL_INPUT)), 39);
         assert_eq!(part1(&parse(INPUT)), 590784);
+    }
+
+    #[test]
+    fn test_part2_sample() {
+        assert_eq!(part2(&parse(SMALL_INPUT)), 39);
+    }
+
+    // #[test]
+    fn test_part2_input() {
+        let cuboids = parse(
+            std::fs::read_to_string("input/d22-test.txt")
+                .expect("file not found")
+                .as_str(),
+        );
+
+        assert_eq!(part2(&cuboids), 2758514936282235);
+    }
+
+    #[test]
+    fn test_range_len() {
+        assert_eq!(Range::new(10, 15).len(), 6);
+    }
+
+    #[test]
+    fn test_range_intersection() {
+        let range0 = Range::new(10, 15);
+        let range1 = Range::new(12, 17);
+        assert_eq!((range0 & range1).unwrap(), Range::new(12, 15));
+
+        let range0 = Range::new(10, 15);
+        let range1 = Range::new(15, 17);
+        assert_eq!((range0 & range1).unwrap(), Range::new(15, 15));
+
+        let range0 = Range::new(10, 15);
+        let range1 = Range::new(16, 17);
+        assert!((range0 & range1).is_none());
+    }
+
+    #[test]
+    fn test_cuboid_volume() {
+        let cuboid0 = Cuboid::new(true, (10, 15), (12, 16), (2, 4));
+        assert_eq!(cuboid0.volume(), 90);
+    }
+
+    #[test]
+    fn test_cuboid_subtraction_overlap() {
+        let cuboid0 = Cuboid::new(true, (10, 12), (10, 12), (10, 12));
+        let cuboid1 = Cuboid::new(true, (11, 13), (11, 13), (11, 13));
+
+        let actual = cuboid1 - cuboid0;
+
+        actual.iter().for_each(|c| println!("{}", c));
+
+        assert_eq!(
+            actual,
+            vec![
+                Cuboid::new(true, (13, 13), (11, 13), (11, 13)),
+                Cuboid::new(true, (11, 12), (13, 13), (11, 13)),
+                Cuboid::new(true, (11, 12), (11, 12), (13, 13)),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_cuboid_subtraction_contains() {
+        let cuboid0 = Cuboid::new(true, (10, 15), (12, 16), (2, 4));
+        let cuboid1 = Cuboid::new(true, (5, 20), (5, 20), (0, 10));
+
+        assert_eq!(cuboid0 - cuboid1, vec![]);
     }
 }
