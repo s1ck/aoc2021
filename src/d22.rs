@@ -238,6 +238,8 @@ impl Sub for Cuboid {
 
 #[cfg(test)]
 mod tests {
+    use test::Bencher;
+
     use super::*;
 
     const SMALL_INPUT: &str = r#"on x=10..12,y=10..12,z=10..12
@@ -353,5 +355,27 @@ mod tests {
         let cuboid1 = Cuboid::new(true, (5, 20), (5, 20), (0, 10));
 
         assert_eq!(cuboid0 - cuboid1, vec![]);
+    }
+
+    #[bench]
+    fn bench_part1(bencher: &mut Bencher) {
+        let cuboids = parse(
+            std::fs::read_to_string("input/d22.txt")
+                .expect("file not found")
+                .as_str(),
+        );
+
+        bencher.iter(|| assert_eq!(part1(&cuboids), 568000));
+    }
+
+    #[bench]
+    fn bench_part2(bencher: &mut Bencher) {
+        let cuboids = parse(
+            std::fs::read_to_string("input/d22.txt")
+                .expect("file not found")
+                .as_str(),
+        );
+
+        bencher.iter(|| assert_eq!(part2(&cuboids), 1177411289280259));
     }
 }
