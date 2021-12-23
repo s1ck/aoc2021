@@ -234,10 +234,6 @@ fn simulate(
     depth: usize,
     min: &mut usize,
 ) -> usize {
-    // if current_cost > *min {
-    //     return usize::MAX;
-    // }
-
     if state.is_solved() {
         return 0;
     }
@@ -269,6 +265,8 @@ fn simulate(
 
 #[cfg(test)]
 mod tests {
+    use test::Bencher;
+
     use super::*;
 
     #[test]
@@ -523,5 +521,35 @@ mod tests {
         // let state = State::new(['.'; 11], [['A', 'B'], ['D', 'C'], ['A', 'D'], ['B', 'C']]);
 
         assert_eq!(search(state), 12521);
+    }
+
+    #[bench]
+    fn bench_part1(b: &mut Bencher) {
+        let input1 = State::new(
+            ['.'; 11],
+            [
+                ['A', 'B', 'A', 'A'],
+                ['D', 'C', 'B', 'B'],
+                ['A', 'D', 'C', 'C'],
+                ['B', 'C', 'D', 'D'],
+            ],
+        );
+
+        b.iter(|| assert_eq!(search(input1), 13455));
+    }
+
+    #[bench]
+    fn bench_part2(b: &mut Bencher) {
+        let input2 = State::new(
+            ['.'; 11],
+            [
+                ['A', 'D', 'D', 'B'],
+                ['D', 'C', 'B', 'C'],
+                ['A', 'B', 'A', 'D'],
+                ['B', 'A', 'C', 'C'],
+            ],
+        );
+
+        b.iter(|| assert_eq!(search(input2), 43567));
     }
 }
