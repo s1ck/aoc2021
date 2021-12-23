@@ -1,16 +1,33 @@
 use std::{collections::HashMap, fmt::Display};
 
 pub fn run() -> (usize, usize) {
-    // let state = State::new(['.'; 11], [['B', 'A'], ['C', 'D'], ['B', 'C'], ['D', 'A']]);
-    let state = State::new(['.'; 11], [['A', 'B'], ['D', 'C'], ['A', 'D'], ['B', 'C']]);
-    (part1(state), 0)
+    let input1 = State::new(
+        ['.'; 11],
+        [
+            ['A', 'B', 'A', 'A'],
+            ['D', 'C', 'B', 'B'],
+            ['A', 'D', 'C', 'C'],
+            ['B', 'C', 'D', 'D'],
+        ],
+    );
+
+    let input2 = State::new(
+        ['.'; 11],
+        [
+            ['A', 'D', 'D', 'B'],
+            ['D', 'C', 'B', 'C'],
+            ['A', 'B', 'A', 'D'],
+            ['B', 'A', 'C', 'C'],
+        ],
+    );
+    (search(input1), search(input2))
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 struct State {
     corridor: [char; 11],
-    rooms: [[char; 2]; 4],
-    locks: [[bool; 2]; 4],
+    rooms: [[char; 4]; 4],
+    locks: [[bool; 4]; 4],
 }
 
 type MoveOut = ((usize, usize), usize);
@@ -20,11 +37,11 @@ impl State {
     const ROOM_MAP: [char; 4] = ['A', 'B', 'C', 'D'];
     const CORRIDOR_SLOTS: [usize; 7] = [0, 1, 3, 5, 7, 9, 10];
 
-    fn new(corridor: [char; 11], rooms: [[char; 2]; 4]) -> Self {
+    fn new(corridor: [char; 11], rooms: [[char; 4]; 4]) -> Self {
         Self {
             corridor,
             rooms,
-            locks: [[false; 2]; 4],
+            locks: [[false; 4]; 4],
         }
     }
 
@@ -200,7 +217,7 @@ impl Display for State {
     }
 }
 
-fn part1(state: State) -> usize {
+fn search(state: State) -> usize {
     let mut states = HashMap::new();
     let mut min = usize::MAX;
     let min_cost = simulate(state, &mut states, 0, &mut min);
@@ -264,7 +281,15 @@ mod tests {
 
     #[test]
     fn test_moves_from_room() {
-        let state = State::new(['.'; 11], [['A', 'B'], ['D', 'C'], ['A', 'D'], ['B', 'C']]);
+        let state = State::new(
+            ['.'; 11],
+            [
+                ['A', 'B', 'A', 'A'],
+                ['D', 'C', 'B', 'B'],
+                ['A', 'D', 'C', 'C'],
+                ['B', 'C', 'D', 'D'],
+            ],
+        );
 
         let actual = state.possible_moves_from_room(0).unwrap();
 
@@ -288,7 +313,15 @@ mod tests {
         corridor[1] = 'B';
         corridor[7] = 'C';
 
-        let state = State::new(corridor, [['.', 'B'], ['D', 'C'], ['A', 'D'], ['B', 'C']]);
+        let state = State::new(
+            corridor,
+            [
+                ['.', 'B', 'A', 'A'],
+                ['D', 'C', 'B', 'B'],
+                ['A', 'D', 'C', 'C'],
+                ['B', 'C', 'D', 'D'],
+            ],
+        );
 
         let actual = state.possible_moves_from_room(0).unwrap();
 
@@ -297,7 +330,15 @@ mod tests {
 
     #[test]
     fn test_moves_from_room_no_move() {
-        let state = State::new(['.'; 11], [['.', 'A'], ['B', 'B'], ['.', 'C'], ['D', 'D']]);
+        let state = State::new(
+            ['.'; 11],
+            [
+                ['.', 'A', 'A', 'A'],
+                ['B', 'B', 'B', 'B'],
+                ['.', 'C', 'C', 'C'],
+                ['D', 'D', 'D', 'D'],
+            ],
+        );
 
         assert!(state.possible_moves_from_room(0).is_none());
         assert!(state.possible_moves_from_room(1).is_none());
@@ -307,7 +348,15 @@ mod tests {
 
     #[test]
     fn test_moves_out() {
-        let state = State::new(['.'; 11], [['B', 'A'], ['C', 'D'], ['B', 'C'], ['D', 'A']]);
+        let state = State::new(
+            ['.'; 11],
+            [
+                ['B', 'A', 'A', 'A'],
+                ['C', 'D', 'B', 'B'],
+                ['B', 'C', 'C', 'C'],
+                ['D', 'A', 'D', 'D'],
+            ],
+        );
 
         let actual = state.possible_out_moves();
 
@@ -353,7 +402,15 @@ mod tests {
         corridor[7] = 'B';
         corridor[10] = 'D';
 
-        let state = State::new(corridor, [['.', 'A'], ['.', 'B'], ['C', 'C'], ['.', '.']]);
+        let state = State::new(
+            corridor,
+            [
+                ['.', 'A', 'A', 'A'],
+                ['.', 'B', 'B', 'B'],
+                ['C', 'C', 'C', 'C'],
+                ['.', '.', 'D', 'D'],
+            ],
+        );
 
         let actual = state.possible_in_moves();
 
@@ -370,7 +427,15 @@ mod tests {
         corridor[7] = 'D';
         corridor[9] = 'A';
 
-        let state = State::new(corridor, [['.', 'A'], ['B', 'B'], ['C', 'C'], ['.', '.']]);
+        let state = State::new(
+            corridor,
+            [
+                ['.', 'A', 'A', 'A'],
+                ['B', 'B', 'B', 'B'],
+                ['C', 'C', 'C', 'C'],
+                ['.', '.', 'D', 'D'],
+            ],
+        );
 
         assert_eq!(state.possible_in_moves(), vec![((7, (3, 1)), 3000)]);
         let state = state.move_in((7, (3, 1)));
@@ -383,7 +448,15 @@ mod tests {
 
     #[test]
     fn test_example() {
-        let state = State::new(['.'; 11], [['B', 'A'], ['C', 'D'], ['B', 'C'], ['D', 'A']]);
+        let state = State::new(
+            ['.'; 11],
+            [
+                ['B', 'A', 'A', 'A'],
+                ['C', 'D', 'B', 'B'],
+                ['B', 'C', 'C', 'C'],
+                ['D', 'A', 'D', 'D'],
+            ],
+        );
 
         let moves = state.possible_out_moves();
         assert!(moves.contains(&(((2, 0), 3), 40)));
@@ -438,9 +511,17 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        let state = State::new(['.'; 11], [['B', 'A'], ['C', 'D'], ['B', 'C'], ['D', 'A']]);
+        let state = State::new(
+            ['.'; 11],
+            [
+                ['B', 'A', 'A', 'A'],
+                ['C', 'D', 'B', 'B'],
+                ['B', 'C', 'C', 'C'],
+                ['D', 'A', 'D', 'D'],
+            ],
+        );
         // let state = State::new(['.'; 11], [['A', 'B'], ['D', 'C'], ['A', 'D'], ['B', 'C']]);
 
-        assert_eq!(part1(state), 12521);
+        assert_eq!(search(state), 12521);
     }
 }
