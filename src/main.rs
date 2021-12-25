@@ -31,6 +31,7 @@ mod d20;
 mod d21;
 mod d22;
 mod d23;
+mod d24;
 
 fn main() {
     let day = std::env::args()
@@ -120,6 +121,7 @@ fn main() {
         21 => d21::run(read_file("input/d21.txt")),
         22 => d22::run(read_file("input/d22.txt")),
         23 => d23::run(),
+        24 => d24::run(),
         _ => panic!("invalid input"),
     };
 
