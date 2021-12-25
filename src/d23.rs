@@ -219,21 +219,10 @@ impl Display for State {
 
 fn search(state: State) -> usize {
     let mut states = HashMap::new();
-    let mut min = usize::MAX;
-    let min_cost = simulate(state, &mut states, 0, &mut min);
-    let min_cost_state = states.values().copied().min().unwrap_or(usize::MAX);
-
-    // assert_eq!(min_cost, min_cost_state);
-
-    min_cost
+    simulate(state, &mut states)
 }
 
-fn simulate(
-    state: State,
-    states: &mut HashMap<State, usize>,
-    depth: usize,
-    min: &mut usize,
-) -> usize {
+fn simulate(state: State, states: &mut HashMap<State, usize>) -> usize {
     if state.is_solved() {
         return 0;
     }
@@ -246,13 +235,13 @@ fn simulate(
 
     for (mv, cost) in state.possible_out_moves() {
         let new_state = state.move_out(mv);
-        let current_cost = simulate(new_state, states, depth + 1, min);
+        let current_cost = simulate(new_state, states);
         costs.push(current_cost.saturating_add(cost));
     }
 
     for (mv, cost) in state.possible_in_moves() {
         let new_state = state.move_in(mv);
-        let current_cost = simulate(new_state, states, depth + 1, min);
+        let current_cost = simulate(new_state, states);
         costs.push(current_cost.saturating_add(cost));
     }
 
