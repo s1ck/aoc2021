@@ -125,7 +125,7 @@ impl FromStr for Cuboid {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (state, ranges) = s.trim().split_once(' ').unwrap();
-        let mut ranges = ranges.split(",");
+        let mut ranges = ranges.split(',');
         let x = ranges.next().unwrap().parse::<Range>()?;
         let y = ranges.next().unwrap().parse::<Range>()?;
         let z = ranges.next().unwrap().parse::<Range>()?;

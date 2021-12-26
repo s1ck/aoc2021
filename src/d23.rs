@@ -62,14 +62,14 @@ impl State {
     }
 
     fn move_out(&self, ((room, slot), to): MoveOut) -> Self {
-        let mut res = self.clone();
+        let mut res = *self;
         res.corridor[to] = self.rooms[room][slot];
         res.rooms[room][slot] = '.';
         res
     }
 
     fn move_in(&self, (from, (room, slot)): MoveIn) -> Self {
-        let mut res = self.clone();
+        let mut res = *self;
         res.corridor[from] = '.';
         res.rooms[room][slot] = self.corridor[from];
         res.locks[room][slot] = true;
@@ -79,14 +79,18 @@ impl State {
     fn possible_out_moves(&self) -> Vec<(MoveOut, usize)> {
         let mut moves_out = vec![];
 
-        self.possible_moves_from_room(0)
-            .map(|mvs| moves_out.extend(mvs));
-        self.possible_moves_from_room(1)
-            .map(|mvs| moves_out.extend(mvs));
-        self.possible_moves_from_room(2)
-            .map(|mvs| moves_out.extend(mvs));
-        self.possible_moves_from_room(3)
-            .map(|mvs| moves_out.extend(mvs));
+        if let Some(mvs) = self.possible_moves_from_room(0) {
+            moves_out.extend(mvs)
+        }
+        if let Some(mvs) = self.possible_moves_from_room(1) {
+            moves_out.extend(mvs)
+        }
+        if let Some(mvs) = self.possible_moves_from_room(2) {
+            moves_out.extend(mvs)
+        }
+        if let Some(mvs) = self.possible_moves_from_room(3) {
+            moves_out.extend(mvs)
+        }
 
         moves_out
     }
@@ -249,7 +253,7 @@ fn simulate(state: State, states: &mut HashMap<State, usize>) -> usize {
 
     states.insert(state, local_min);
 
-    return local_min;
+    local_min
 }
 
 #[cfg(test)]

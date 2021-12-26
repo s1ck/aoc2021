@@ -70,7 +70,7 @@ fn part1(mut players: Vec<Player>) -> usize {
             .reduce(|res, next| if next.score < res.score { next } else { res })
             .unwrap();
 
-        if let Some(_) = winner {
+        if winner.is_some() {
             return looser.score * dice.rolls;
         }
     }

@@ -42,9 +42,7 @@ impl FromStr for Line {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Line(
-            s.trim().chars().map(|c| Field::from(c)).collect::<Vec<_>>(),
-        ))
+        Ok(Line(s.trim().chars().map(Field::from).collect::<Vec<_>>()))
     }
 }
 
@@ -79,30 +77,30 @@ fn part1(mut lines: Vec<Line>) -> usize {
 }
 
 fn simulate(lines: &mut [Line]) -> bool {
-    let mut moves = 0;
+    let mut done = true;
 
     let rows = lines.len();
     let cols = lines[0].len();
 
     // Move east cucumbers
-    for row in 0..rows {
-        let move_last = lines[row][0] == Field::Empty && lines[row][cols - 1] == Field::East;
+    for row in lines.iter_mut() {
+        let move_last = row[0] == Field::Empty && row[cols - 1] == Field::East;
 
         let mut col = 0;
         while col < cols - 1 {
-            if lines[row][col] == Field::East && lines[row][col + 1] == Field::Empty {
-                lines[row][col] = Field::Empty;
-                lines[row][col + 1] = Field::East;
-                moves += 1;
+            if row[col] == Field::East && row[col + 1] == Field::Empty {
+                row[col] = Field::Empty;
+                row[col + 1] = Field::East;
+                done = false;
                 col += 1;
             }
             col += 1;
         }
 
         if move_last {
-            lines[row][cols - 1] = Field::Empty;
-            lines[row][0] = Field::East;
-            moves += 1;
+            row[cols - 1] = Field::Empty;
+            row[0] = Field::East;
+            done = false;
         }
     }
 
@@ -115,7 +113,7 @@ fn simulate(lines: &mut [Line]) -> bool {
             if lines[row][col] == Field::South && lines[row + 1][col] == Field::Empty {
                 lines[row][col] = Field::Empty;
                 lines[row + 1][col] = Field::South;
-                moves += 1;
+                done = false;
                 row += 1;
             }
             row += 1;
@@ -124,11 +122,11 @@ fn simulate(lines: &mut [Line]) -> bool {
         if move_last {
             lines[rows - 1][col] = Field::Empty;
             lines[0][col] = Field::South;
-            moves += 1;
+            done = false;
         }
     }
 
-    moves == 0
+    done
 }
 
 #[cfg(test)]
